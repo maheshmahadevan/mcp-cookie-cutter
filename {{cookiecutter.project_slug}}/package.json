@@ -1,0 +1,60 @@
+{% if cookiecutter.sdk_choice == 'typescript' -%}
+{
+  "name": "{{ cookiecutter.project_slug }}",
+  "version": "0.1.0",
+  "description": "{{ cookiecutter.project_description }}",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "{{ cookiecutter.project_slug }}": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "llm"
+  ],
+  "author": "{{ cookiecutter.author_name }} <{{ cookiecutter.author_email }}>",
+  "license": "{{ cookiecutter.license }}",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+{% if cookiecutter.deployment_type == 'remote' -%}
+    "express": "^4.18.0",
+    "express-sse": "^0.5.3",
+{% endif -%}
+{% if cookiecutter.auth_mechanism == 'oauth2' -%}
+    "openid-client": "^5.6.0",
+{% endif -%}
+{% if cookiecutter.auth_mechanism == 'api_key' -%}
+    "dotenv": "^16.4.0",
+{% endif -%}
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+{% if cookiecutter.deployment_type == 'remote' -%}
+    "@types/express": "^4.17.21",
+{% endif -%}
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+{%- endif %}

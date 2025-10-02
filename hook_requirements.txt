@@ -1,0 +1,3 @@
+# Requirements for cookiecutter hooks
+# These are optional but recommended for full functionality
+pyyaml>=6.0
