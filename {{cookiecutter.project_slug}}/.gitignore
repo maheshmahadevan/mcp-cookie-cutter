@@ -22,11 +22,8 @@ wheels/
 *.egg
 
 # Virtual environments
-{% if cookiecutter.python_package_manager == 'uv' -%}
 .venv/
-{% else -%}
 venv/
-{% endif -%}
 env/
 ENV/
 

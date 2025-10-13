@@ -1,138 +1,92 @@
-{% if cookiecutter.sdk_choice == 'python' -%}
-"""{{ cookiecutter.project_name }} MCP Server."""
+"""{{ cookiecutter.project_name }} FastMCP Server - Main Entry Point."""
 
-import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from pathlib import Path
 
-{% if cookiecutter.deployment_type == 'local' -%}
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-{% else -%}
-from mcp.server import Server
-from mcp.server.sse import sse_server
-from starlette.applications import Starlette
-from starlette.routing import Route
-{% endif -%}
-from mcp.types import (
-    Tool,
-    TextContent,
-    ImageContent,
-    EmbeddedResource,
-    LoggingLevel,
-)
-{% if cookiecutter.auth_mechanism == 'oauth2' -%}
-from .auth.oauth import OAuthHandler
-{% elif cookiecutter.auth_mechanism == 'api_key' -%}
-from .auth.api_key import APIKeyHandler
-{% endif -%}
-from .tools import register_tools
-{% if cookiecutter.include_resources == 'yes' -%}
-from .resources import register_resources
-{% endif -%}
-{% if cookiecutter.include_prompts == 'yes' -%}
-from .prompts import register_prompts
-{% endif -%}
-
-# Configure logging to stderr (never stdout for STDIO servers)
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]  # Goes to stderr by default
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
+def create_server():
+    """Create and configure the FastMCP server."""
+    from fastmcp import FastMCP
 
-class {{ cookiecutter.project_name.replace(' ', '').replace('-', '') }}Server:
-    """MCP Server for {{ cookiecutter.project_name }}."""
+    # Initialize FastMCP server
+    mcp = FastMCP(
+        name="{{ cookiecutter.project_slug }}"
+    )
 
-    def __init__(self):
-        """Initialize the MCP server."""
-        self.server = Server("{{ cookiecutter.project_slug }}")
-{%- if cookiecutter.auth_mechanism == 'oauth2' %}
-        self.auth_handler = OAuthHandler()
-{%- elif cookiecutter.auth_mechanism == 'api_key' %}
-        self.auth_handler = APIKeyHandler()
-{%- endif %}
+    # Auto-discover and import tools from tools directory
+    tools_dir = Path(__file__).parent / "tools"
+    if tools_dir.exists():
+        import importlib.util
+        import sys
 
-        # Register handlers
-        self._register_handlers()
+        for tool_file in tools_dir.glob("*.py"):
+            if tool_file.name.startswith("_"):
+                continue
 
-    def _register_handlers(self):
-        """Register all MCP protocol handlers."""
-        # Register tools
-        register_tools(self.server)
-{% if cookiecutter.include_resources == 'yes' %}
+            module_name = f"{{ cookiecutter.project_slug }}.tools.{tool_file.stem}"
+            spec = importlib.util.spec_from_file_location(module_name, tool_file)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+                # Pass mcp instance to module before executing
+                module.mcp = mcp
+                spec.loader.exec_module(module)
+                logger.info(f"Loaded tool module: {module_name}")
 
-        # Register resources
-        register_resources(self.server)
-{%- endif %}
-{% if cookiecutter.include_prompts == 'yes' %}
+    # Auto-discover and import prompts from prompts directory
+    prompts_dir = Path(__file__).parent / "prompts"
+    if prompts_dir.exists():
+        for prompt_file in prompts_dir.glob("*.py"):
+            if prompt_file.name.startswith("_"):
+                continue
 
-        # Register prompts
-        register_prompts(self.server)
-{%- endif %}
+            module_name = f"{{ cookiecutter.project_slug }}.prompts.{prompt_file.stem}"
+            spec = importlib.util.spec_from_file_location(module_name, prompt_file)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+                module.mcp = mcp
+                spec.loader.exec_module(module)
+                logger.info(f"Loaded prompt module: {module_name}")
 
-        # Logging handler
-        @self.server.set_logging_level()
-        async def set_logging_level(level: LoggingLevel) -> None:
-            """Set logging level."""
-            logger.setLevel(level.upper())
-            logger.info(f"Logging level set to {level}")
-
-{% if cookiecutter.deployment_type == 'local' %}
-    async def run(self):
-        """Run the server using STDIO transport."""
-        logger.info("Starting {{ cookiecutter.project_name }} MCP server (STDIO)")
-        async with stdio_server() as (read_stream, write_stream):
-            await self.server.run(
-                read_stream,
-                write_stream,
-                self.server.create_initialization_options()
-            )
-{%- else %}
-    def create_app(self) -> Starlette:
-        """Create Starlette app for SSE transport."""
-        async def handle_sse(request):
-            """Handle SSE connections."""
-{%- if cookiecutter.auth_mechanism != 'none' %}
-            # Authenticate request
-            if not await self.auth_handler.authenticate(request):
-                return Response("Unauthorized", status_code=401)
-
-{%- endif %}
-            async with sse_server() as (read_stream, write_stream):
-                await self.server.run(
-                    read_stream,
-                    write_stream,
-                    self.server.create_initialization_options()
-                )
-
-        app = Starlette(
-            debug=True,
-            routes=[
-                Route("/sse", endpoint=handle_sse),
-            ],
-        )
-        return app
-
-    async def run(self):
-        """Run the server using SSE transport."""
-        import uvicorn
-        logger.info("Starting {{ cookiecutter.project_name }} MCP server (SSE)")
-        app = self.create_app()
-        config = uvicorn.Config(app, host="0.0.0.0", port=8000)
-        server = uvicorn.Server(config)
-        await server.serve()
-{%- endif %}
-
+    return mcp
 
 def main():
-    """Main entry point."""
-    server = {{ cookiecutter.project_name.replace(' ', '').replace('-', '') }}Server()
-    asyncio.run(server.run())
+    """Run the FastMCP server."""
+    import os
+    deployment_type = "{{ cookiecutter.deployment_type }}"
 
+    logger.info("Starting {{ cookiecutter.project_name }} FastMCP server")
+    mcp = create_server()
+
+    if deployment_type == "remote":
+        # Run with HTTP transport using uvicorn for production
+        port = int(os.getenv("PORT", "{{ cookiecutter.server_port }}"))
+        host = os.getenv("HOST", "0.0.0.0")
+        logger.info(f"Starting HTTP server on {host}:{port} with uvicorn")
+
+        # Use uvicorn for production-grade ASGI server
+        import uvicorn
+
+        # Get the ASGI app from FastMCP (Streamable HTTP transport)
+        # The endpoint will be available at /mcp/
+        app = mcp.http_app()
+
+        uvicorn.run(
+            app,
+            host=host,
+            port=port,
+            log_level="info"
+        )
+    else:
+        # Run with STDIO transport (default)
+        mcp.run()
 
 if __name__ == "__main__":
     main()
-{%- endif %}

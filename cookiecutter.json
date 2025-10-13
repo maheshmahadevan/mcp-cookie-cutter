@@ -7,9 +7,7 @@
   "openapi_spec_path": "",
   "sdk_choice": ["python", "typescript"],
   "deployment_type": ["local", "remote"],
+  "server_port": "8000",
   "auth_mechanism": ["none", "api_key", "oauth2"],
-  "python_package_manager": ["uv", "pip"],
-  "include_resources": ["yes", "no"],
-  "include_prompts": ["yes", "no"],
   "license": ["MIT", "Apache-2.0", "BSD-3-Clause", "GPL-3.0", "Proprietary"]
 }

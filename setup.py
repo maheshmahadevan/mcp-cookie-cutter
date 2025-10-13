@@ -11,6 +11,9 @@ setup(
     install_requires=[
         "cookiecutter>=2.1.0",
         "pyyaml>=6.0",
+        "requests>=2.31.0",
+        "openapi-pydantic>=0.4.0",
+        "datamodel-code-generator>=0.25.0",
     ],
     packages=find_packages(),
     package_data={

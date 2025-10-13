@@ -16,6 +16,7 @@ A cookiecutter template for creating Model Context Protocol (MCP) servers. Get a
 ## What You Get
 
 - Complete MCP server project structure
+- **Intelligent OpenAPI parsing** - See available API operations during generation
 - Example tool implementations (GET and POST)
 - Comprehensive CUSTOMIZATION.md guide
 - Authentication templates
@@ -31,19 +32,27 @@ A cookiecutter template for creating Model Context Protocol (MCP) servers. Get a
 ## Installation
 
 ```bash
-# Install cookiecutter
+# Install cookiecutter (required)
 pip install cookiecutter
 
-# Install optional dependencies for full functionality
-# (for YAML OpenAPI specs)
-pip install pyyaml
+# Install optional dependencies for full OpenAPI parsing functionality
+pip install pyyaml requests openapi-pydantic
 ```
 
 Or install all at once:
 
 ```bash
-pip install cookiecutter pyyaml
+pip install cookiecutter pyyaml requests openapi-pydantic
 ```
+
+### Dependency Details
+
+- **cookiecutter** (required) - Template generation engine
+- **pyyaml** (optional) - For parsing YAML OpenAPI specs
+- **requests** (optional) - For fetching OpenAPI specs from URLs
+- **openapi-pydantic** (optional) - For validating and parsing OpenAPI schemas with type safety
+
+Without the optional dependencies, you can still generate MCP servers, but OpenAPI spec parsing and tool suggestions will not be available.
 
 ## Quick Start
 
@@ -142,31 +151,38 @@ my-mcp-server/
 
 ## OpenAPI/Swagger Integration
 
-The template includes a pre-generation hook that:
+The template includes intelligent OpenAPI parsing that:
 
-1. Loads your OpenAPI/Swagger specification
-2. Extracts all available endpoints (GET, POST, PUT, DELETE, PATCH)
-3. Presents them as potential MCP tools
-4. Saves the tool definitions for use in the generated server
+1. **Loads your OpenAPI/Swagger specification** (from file or URL)
+2. **Validates the spec** using openapi-pydantic (if installed)
+3. **Extracts all available endpoints** (GET, POST, PUT, DELETE, PATCH)
+4. **Displays operation details** during generation
 
 ### Supported OpenAPI Formats
 
-- OpenAPI 3.x (JSON or YAML)
+- OpenAPI 3.0/3.1 (JSON or YAML)
 - Swagger 2.0 (JSON or YAML)
 
 ### Example OpenAPI Flow
 
 ```bash
 # Provide your OpenAPI spec path when prompted
-openapi_spec_path: ./api-spec.yaml
+openapi_spec_path: https://petstore.swagger.io/v2/swagger.json
 
 # The hook will scan and display:
-Found 15 available tools:
-1. getUsers - Retrieve list of users
-2. createUser - Create a new user
-3. getUserById - Get user by ID
+✨ Found 20 available API operations:
+----------------------------------------------------------------------
+ 1. POST   /pet                           - addPet
+     Add a new pet to the store
+ 2. GET    /pet/{petId}                   - getPetById
+     Find pet by ID
 ...
+----------------------------------------------------------------------
+
+💡 You can implement these as MCP tools in your generated server.
 ```
+
+See [OPENAPI_PARSING.md](OPENAPI_PARSING.md) for detailed documentation on OpenAPI parsing.
 
 ## Configuration Examples
 
