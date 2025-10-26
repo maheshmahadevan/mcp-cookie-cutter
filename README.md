@@ -5,12 +5,13 @@ A cookiecutter template for creating Model Context Protocol (MCP) servers. Get a
 ## Features
 
 - 🚀 **Quick Start**: Generate a working MCP server in seconds
-- 🐍 **Python & TypeScript**: Choose your preferred SDK
-- 🌐 **Local & Remote**: Support for STDIO (local) and SSE (remote) transports
+- 🐍 **Python with FastMCP**: Modern Python-based MCP servers with FastMCP framework
+- 🔧 **OpenAPI Auto-Generation**: Automatically generates tools from OpenAPI/Swagger specs
+- 🌐 **Local & Remote**: Support for STDIO (local) and Streamable HTTP (remote) transports
 - 🔐 **Authentication**: Built-in templates for OAuth 2.1 and API key authentication
-- 📦 **Full-Featured**: Tools, Resources, and Prompts support
+- 📦 **Full-Featured**: Auto-generated tools, prompts, and Pydantic models
 - 📝 **Easy Customization**: Clear examples and guides for adding your API tools
-- ⚡ **Modern Tooling**: Support for uv (Python) and latest SDKs
+- ⚡ **Modern Tooling**: Uses uv for package management and uvicorn for production
 - ✅ **Best Practices**: Follows MCP specification and security guidelines
 
 ## What You Get
@@ -25,9 +26,9 @@ A cookiecutter template for creating Model Context Protocol (MCP) servers. Get a
 
 ## Prerequisites
 
-- Python 3.10+ (required for cookiecutter and Python servers)
-- Node.js 18+ (required for TypeScript servers)
+- Python 3.10+ (required)
 - [cookiecutter](https://github.com/cookiecutter/cookiecutter)
+- [uv](https://docs.astral.sh/uv/) (recommended for package management)
 
 ## Installation
 
@@ -98,12 +99,9 @@ You'll be asked to configure:
 - **Project description**: Brief description
 - **Author information**: Your name and email
 - **OpenAPI spec path**: *(Optional)* Path or URL to your OpenAPI/Swagger spec
-- **SDK choice**: Python or TypeScript
-- **Python package manager**: uv or pip (for Python projects)
-- **Deployment type**: Local (STDIO) or Remote (SSE)
+- **Deployment type**: Local (STDIO) or Remote (Streamable HTTP)
+- **Server port**: Port for remote deployment (default: 8000)
 - **Authentication**: None, API key, or OAuth 2.1
-- **Include resources**: Yes/No
-- **Include prompts**: Yes/No
 - **License**: Choose from MIT, Apache-2.0, BSD-3-Clause, GPL-3.0, or Proprietary
 
 ### 4. Customize Your Tools
@@ -120,33 +118,45 @@ Follow the setup instructions displayed after generation, or see the generated R
 
 ```
 my-mcp-server/
-├── src/                    # Source code
-│   ├── server.py          # Main server (Python)
-│   ├── index.ts           # Main server (TypeScript)
-│   ├── tools.py/ts        # Tool implementations
-│   ├── resources.py/ts    # Resource implementations (optional)
-│   ├── prompts.py/ts      # Prompt templates (optional)
-│   └── auth/              # Authentication handlers (optional)
-├── pyproject.toml         # Python config
-├── package.json           # TypeScript config
+├── src/
+│   └── my_mcp_server/
+│       ├── server.py          # FastMCP server with auto-discovery
+│       ├── tools/             # Individual tool files (auto-generated)
+│       │   ├── __init__.py
+│       │   ├── addPet.py      # Example: POST /pet
+│       │   ├── getPetById.py  # Example: GET /pet/{petId}
+│       │   └── ...
+│       ├── prompts/           # Auto-generated prompts from OpenAPI
+│       │   ├── __init__.py
+│       │   └── pet_operations.py
+│       └── models/            # Pydantic models from OpenAPI
+│           ├── __init__.py
+│           └── schemas.py
+├── test_server.py         # Development testing with auto-reload
+├── pyproject.toml         # Python project configuration
+├── .env.example           # Environment variables template
+├── Dockerfile             # Docker container configuration
+├── docker-compose.yml     # Docker compose for easy deployment
 ├── README.md              # Generated documentation
+├── CUSTOMIZATION.md       # Guide for adding custom tools
 └── .gitignore
 ```
 
 ### Features
 
-- **OpenAPI Integration**: Pre-generation hook scans your OpenAPI spec and extracts available tools
+- **OpenAPI Integration**: Auto-generates tools, prompts, and Pydantic models from OpenAPI specs
+- **FastMCP Framework**: Modern Python MCP framework with decorator-based tool definitions
 - **Transport Support**:
   - **Local (STDIO)**: For Claude Desktop and local clients
-  - **Remote (SSE)**: For web-based and distributed deployments
+  - **Remote (Streamable HTTP)**: Production-grade HTTP server with uvicorn
 - **Authentication**:
   - **None**: Open access (local development only)
-  - **API Key**: Simple bearer token or header-based auth
+  - **API Key**: Bearer token authentication
   - **OAuth 2.1**: Standards-compliant OAuth with PKCE support
 - **MCP Features**:
-  - **Tools**: Execute API operations
-  - **Resources**: Access API data
-  - **Prompts**: Pre-built prompt templates
+  - **Tools**: Auto-generated from OpenAPI operations (individual files per tool)
+  - **Prompts**: Auto-generated helpful prompts from API operations
+  - **Models**: Pydantic models from OpenAPI schemas
   - **Logging**: Proper stderr logging (STDIO-safe)
 
 ## OpenAPI/Swagger Integration
@@ -186,35 +196,37 @@ See [OPENAPI_PARSING.md](OPENAPI_PARSING.md) for detailed documentation on OpenA
 
 ## Configuration Examples
 
-### Local Python Server with No Auth
+### Local Server with No Auth
 
 ```
-sdk_choice: python
 deployment_type: local
 auth_mechanism: none
+openapi_spec_path: https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
-Result: STDIO-based server for Claude Desktop
+Result: STDIO-based server for Claude Desktop with auto-generated tools
 
-### Remote TypeScript Server with OAuth
+### Remote Server with API Keys
 
 ```
-sdk_choice: typescript
 deployment_type: remote
-auth_mechanism: oauth2
-```
-
-Result: SSE-based server with OAuth 2.1 authentication
-
-### Remote Python Server with API Keys
-
-```
-sdk_choice: python
-deployment_type: remote
+server_port: 9090
 auth_mechanism: api_key
+openapi_spec_path: https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
-Result: SSE-based server with API key authentication
+Result: Streamable HTTP server with API key authentication and auto-generated tools
+
+### Remote Server with OAuth
+
+```
+deployment_type: remote
+server_port: 8000
+auth_mechanism: oauth2
+openapi_spec_path: https://api.github.com/openapi.json
+```
+
+Result: Streamable HTTP server with OAuth 2.1 authentication
 
 ## Best Practices
 
@@ -259,7 +271,13 @@ The template uses Jinja2 templating. Key files:
 cookiecutter . --no-input
 
 # Or with specific values
-cookiecutter . --no-input sdk_choice=python deployment_type=local
+cookiecutter . --no-input deployment_type=local auth_mechanism=none
+
+# Test with OpenAPI spec
+cookiecutter . --no-input \
+  openapi_spec_path="https://petstore3.swagger.io/api/v3/openapi.json" \
+  deployment_type="remote" \
+  server_port="9090"
 ```
 
 ## Documentation
@@ -268,12 +286,100 @@ cookiecutter . --no-input sdk_choice=python deployment_type=local
 - **[USAGE.md](USAGE.md)** - Detailed usage guide for running from different locations
 - **[TEST_GUIDE.md](TEST_GUIDE.md)** - Testing with Petstore API
 
+## Testing Resources
+
+Test your MCP Cookie Cutter template with these verified APIs that have OpenAPI 3.0 specifications:
+
+### 1. **Swagger Petstore** ⭐ Recommended for Testing
+- **OpenAPI Spec**: https://petstore3.swagger.io/api/v3/openapi.json
+- **Base URL**: https://petstore3.swagger.io/api/v3
+- **Auth**: None required
+- **Resources**: Pets, Store, Users
+- **Why**: Gold standard for API testing, fully functional, no auth needed
+
+### 2. **JSONPlaceholder** - Simple & Free
+- **OpenAPI Spec**: https://gist.githubusercontent.com/oshevtsov/7d17f88f74730ce9c95b6d7bb3e03c3d/raw/jsonplaceholder-openapi-3.0.yaml
+- **Base URL**: https://jsonplaceholder.typicode.com
+- **Auth**: None required
+- **Resources**: Posts, Comments, Albums, Photos, Todos, Users
+- **Why**: Free fake REST API, perfect for quick testing
+
+### 3. **GitHub REST API** - Real-World Example
+- **OpenAPI Spec**: https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json
+- **Base URL**: https://api.github.com
+- **Auth**: Optional (higher rate limits with token)
+- **Resources**: Repos, Issues, Users, Pull Requests
+- **Why**: Real production API, comprehensive operations
+- **Note**: Very large spec (~15MB) - Pydantic model generation may fail, but tools will still be generated
+
+### 4. **Stripe API** - Payment Processing
+- **OpenAPI Spec**: https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json
+- **Base URL**: https://api.stripe.com
+- **Auth**: API Key (free test mode available)
+- **Resources**: Payments, Customers, Products, Subscriptions
+- **Why**: Well-documented, production-grade API
+
+### 5. **APIs-guru Collection** - 300+ Public APIs
+- **Repository**: https://github.com/APIs-guru/openapi-directory
+- **Popular APIs**:
+  - **OpenWeatherMap**: https://raw.githubusercontent.com/APIs-guru/openapi-directory/main/APIs/openweathermap.org/2.5/openapi.yaml
+  - **Spotify**: https://raw.githubusercontent.com/APIs-guru/openapi-directory/main/APIs/spotify.com/openapi.yaml
+  - **Twilio**: https://raw.githubusercontent.com/APIs-guru/openapi-directory/main/APIs/twilio.com/openapi.yaml
+
+### Quick Test Commands
+
+**Test with Petstore (Recommended):**
+```bash
+cookiecutter . \
+  project_name="petstore_server" \
+  openapi_spec_path="https://petstore3.swagger.io/api/v3/openapi.json" \
+  deployment_type="remote" \
+  server_port="9090" \
+  auth_mechanism="none"
+```
+
+**Test with JSONPlaceholder:**
+```bash
+cookiecutter . \
+  project_name="jsonplaceholder_server" \
+  openapi_spec_path="https://gist.githubusercontent.com/oshevtsov/7d17f88f74730ce9c95b6d7bb3e03c3d/raw/jsonplaceholder-openapi-3.0.yaml" \
+  deployment_type="remote" \
+  server_port="9090" \
+  auth_mechanism="none"
+```
+
+**Test with GitHub API:**
+```bash
+# Note: GitHub API spec is very large, may take a minute to process
+cookiecutter . \
+  project_name="github_server" \
+  openapi_spec_path="https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json" \
+  deployment_type="remote" \
+  server_port="9090" \
+  auth_mechanism="api_key"
+```
+
+### Self-Hosted Testing Options
+
+**Quick Docker Deploy - Petstore:**
+```bash
+docker run -d -p 8080:8080 swaggerapi/petstore3:unstable
+# OpenAPI spec available at: http://localhost:8080/api/v3/openapi.json
+```
+
+**Prism Mock Server (Mock ANY OpenAPI spec):**
+```bash
+npm install -g @stoplight/prism-cli
+prism mock https://petstore3.swagger.io/api/v3/openapi.json
+# Creates a mock API server on http://localhost:4010
+```
+
 ## Resources
 
 - [Model Context Protocol Documentation](https://modelcontextprotocol.io)
 - [MCP Specification](https://modelcontextprotocol.io/specification/2025-06-18)
-- [Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-- [TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+- [FastMCP Documentation](https://gofastmcp.com)
+- [FastMCP GitHub](https://github.com/jlowin/fastmcp)
 - [Cookiecutter Documentation](https://cookiecutter.readthedocs.io)
 
 ## Distribution

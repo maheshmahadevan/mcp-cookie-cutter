@@ -4,281 +4,119 @@ This guide shows you how to add tools to your MCP server based on your OpenAPI/S
 
 ## Quick Start
 
-The generated server includes example tools. Follow these steps to customize them for your API:
+The generated server auto-generates tools from your OpenAPI spec. You can also add custom tools:
 
 1. **Review your OpenAPI spec** - Identify the endpoints you want to expose
-2. **Update tool definitions** - Modify the `list_tools()` handler
-3. **Implement tool logic** - Add HTTP client code in `call_tool()` handler
-4. **Test your tools** - Run the server and test with Claude
+2. **Custom tools are auto-generated** - Individual tool files in `src/{{ cookiecutter.project_slug }}/tools/`
+3. **Test your tools** - Run the server and test with Claude or MCP Inspector
 
-## Example: Adding a Tool from OpenAPI
+## Auto-Generated Tools
 
-### Step 1: Identify an Endpoint
+The generator creates individual Python files for each OpenAPI operation in `src/{{ cookiecutter.project_slug }}/tools/`:
 
-From your OpenAPI spec, find an endpoint. For example:
-
-```yaml
-paths:
-  /pet/{petId}:
-    get:
-      operationId: getPetById
-      summary: Find pet by ID
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
+```
+tools/
+├── __init__.py
+├── addPet.py          # Auto-generated from POST /pet
+├── updatePet.py       # Auto-generated from PUT /pet
+├── getPetById.py      # Auto-generated from GET /pet/{petId}
+└── ...
 ```
 
-### Step 2: Add Tool Definition
-
-{% if cookiecutter.sdk_choice == 'python' -%}
-In `src/{{ cookiecutter.project_slug }}/tools.py`, update the `list_tools()` function:
+Each tool file follows this pattern:
 
 ```python
-@server.list_tools()
-async def list_tools() -> List[Tool]:
-    """List available tools."""
-    return [
-        Tool(
-            name="getPetById",
-            description="Find pet by ID from the Petstore API",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "petId": {
-                        "type": "integer",
-                        "description": "ID of the pet to retrieve"
-                    }
-                },
-                "required": ["petId"]
-            }
-        )
-    ]
+"""Auto-generated tool: getPetById"""
+
+import httpx
+import os
+from typing import Any
+
+# Get BASE_URL from environment or use default from OpenAPI spec
+BASE_URL = os.getenv("BASE_URL", "/api/v3")
+
+@mcp.tool()  # type: ignore
+async def getPetById(
+    petId: int,  # Pet id to return
+) -> dict | str:
+    """Find pet by ID."""
+    url = f"{BASE_URL}/pet/{petId}"
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        response.raise_for_status()
+        return response.json() if response.text else {"status": "success"}
 ```
-{% else -%}
-In `src/tools.ts`, update the `ListToolsRequestSchema` handler:
-
-```typescript
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
-      {
-        name: "getPetById",
-        description: "Find pet by ID from the Petstore API",
-        inputSchema: {
-          type: "object",
-          properties: {
-            petId: {
-              type: "integer",
-              description: "ID of the pet to retrieve",
-            },
-          },
-          required: ["petId"],
-        },
-      },
-    ],
-  };
-});
-```
-{% endif -%}
-
-### Step 3: Implement Tool Logic
-
-{% if cookiecutter.sdk_choice == 'python' -%}
-Add the implementation in `call_tool()`:
-
-```python
-@server.call_tool()
-async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Execute a tool."""
-    logger.info(f"Calling tool: {name} with arguments: {arguments}")
-
-    if name == "getPetById":
-        import httpx
-
-        pet_id = arguments.get("petId")
-        url = f"https://petstore.swagger.io/v2/pet/{pet_id}"
-
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url)
-            response.raise_for_status()
-
-            return [
-                TextContent(
-                    type="text",
-                    text=response.text
-                )
-            ]
-
-    raise ValueError(f"Unknown tool: {name}")
-```
-
-**Note**: Add `httpx` to dependencies in `pyproject.toml`:
-
-```toml
-dependencies = [
-    "mcp>=1.0.0",
-    "httpx>=0.27.0",  # Add this line
-]
-```
-{% else -%}
-Add the implementation in `CallToolRequestSchema` handler:
-
-```typescript
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-
-  log.info(`Calling tool: ${name}`);
-
-  switch (name) {
-    case "getPetById": {
-      const petId = args?.petId as number;
-      const url = `https://petstore.swagger.io/v2/pet/${petId}`;
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.text();
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: data,
-          },
-        ],
-      };
-    }
-
-    default:
-      throw new Error(`Unknown tool: ${name}`);
-  }
-});
-```
-{% endif -%}
 
 ## Common Patterns
 
 ### GET Request with Path Parameters
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ```python
-async def get_user(arguments: Dict[str, Any]) -> List[TextContent]:
-    user_id = arguments.get("userId")
-    url = f"https://api.example.com/users/{user_id}"
+@mcp.tool()
+async def get_user(
+    userId: int,  # User ID to fetch
+) -> dict | str:
+    """Get user by ID."""
+    url = f"{BASE_URL}/users/{userId}"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
         response.raise_for_status()
-        return [TextContent(type="text", text=response.text)]
+        return response.json() if response.text else {"status": "success"}
 ```
-{% else -%}
-```typescript
-async function getUser(args: any): Promise<string> {
-  const userId = args.userId;
-  const url = `https://api.example.com/users/${userId}`;
-
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return await response.text();
-}
-```
-{% endif -%}
 
 ### GET Request with Query Parameters
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ```python
-async def search_pets(arguments: Dict[str, Any]) -> List[TextContent]:
-    status = arguments.get("status")
-    params = {"status": status}
+@mcp.tool()
+async def search_pets(
+    status: str,  # Status values to filter by
+) -> dict | str:
+    """Find pets by status."""
+    url = f"{BASE_URL}/pet/findByStatus"
 
     async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://api.example.com/pets",
-            params=params
-        )
-        response.raise_for_status()
-        return [TextContent(type="text", text=response.text)]
-```
-{% else -%}
-```typescript
-async function searchPets(args: any): Promise<string> {
-  const status = args.status;
-  const params = new URLSearchParams({ status });
-  const url = `https://api.example.com/pets?${params}`;
+        params = {}
+        if status is not None:
+            params["status"] = status
 
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return await response.text();
-}
+        response = await client.get(url, params=params)
+        response.raise_for_status()
+        return response.json() if response.text else {"status": "success"}
 ```
-{% endif -%}
 
 ### POST Request with Body
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ```python
-async def create_pet(arguments: Dict[str, Any]) -> List[TextContent]:
-    pet_data = arguments.get("body")
+@mcp.tool()
+async def create_pet(
+    body: dict,  # Request body
+) -> dict | str:
+    """Add a new pet to the store."""
+    url = f"{BASE_URL}/pet"
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://api.example.com/pets",
-            json=pet_data
-        )
+        response = await client.post(url, json=body)
         response.raise_for_status()
-        return [TextContent(type="text", text=response.text)]
+        return response.json() if response.text else {"status": "success"}
 ```
-{% else -%}
-```typescript
-async function createPet(args: any): Promise<string> {
-  const petData = args.body;
-
-  const response = await fetch("https://api.example.com/pets", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(petData),
-  });
-
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return await response.text();
-}
-```
-{% endif -%}
 
 ### DELETE Request
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ```python
-async def delete_pet(arguments: Dict[str, Any]) -> List[TextContent]:
-    pet_id = arguments.get("petId")
+@mcp.tool()
+async def delete_pet(
+    petId: int,  # Pet id to delete
+) -> dict | str:
+    """Deletes a pet."""
+    url = f"{BASE_URL}/pet/{petId}"
 
     async with httpx.AsyncClient() as client:
-        response = await client.delete(
-            f"https://api.example.com/pets/{pet_id}"
-        )
+        response = await client.delete(url)
         response.raise_for_status()
-        return [TextContent(type="text", text="Pet deleted successfully")]
+        return response.json() if response.text else {"status": "success"}
 ```
-{% else -%}
-```typescript
-async function deletePet(args: any): Promise<string> {
-  const petId = args.petId;
-
-  const response = await fetch(`https://api.example.com/pets/${petId}`, {
-    method: "DELETE",
-  });
-
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return "Pet deleted successfully";
-}
-```
-{% endif -%}
 
 ## Adding Authentication
 
@@ -287,152 +125,183 @@ async function deletePet(args: any): Promise<string> {
 
 Your server already has API key support. To add API key to tool requests:
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ```python
-async def authenticated_request(arguments: Dict[str, Any]) -> List[TextContent]:
+@mcp.tool()
+async def authenticated_request() -> dict | str:
+    """Make an authenticated request."""
     api_key = os.getenv("API_KEY")
     headers = {"Authorization": f"Bearer {api_key}"}
 
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            "https://api.example.com/data",
+            f"{BASE_URL}/data",
             headers=headers
         )
         response.raise_for_status()
-        return [TextContent(type="text", text=response.text)]
+        return response.json()
 ```
-{% else -%}
-```typescript
-async function authenticatedRequest(args: any): Promise<string> {
-  const apiKey = process.env.API_KEY;
-
-  const response = await fetch("https://api.example.com/data", {
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-    },
-  });
-
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return await response.text();
-}
-```
-{% endif -%}
 {% endif -%}
 
 ## Error Handling
 
-Always handle errors gracefully:
+Tools should handle errors gracefully:
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ```python
-try:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        response.raise_for_status()
-        return [TextContent(type="text", text=response.text)]
-except httpx.HTTPStatusError as e:
-    error_msg = f"HTTP error {e.response.status_code}: {e.response.text}"
-    return [TextContent(type="text", text=error_msg)]
-except Exception as e:
-    return [TextContent(type="text", text=f"Error: {str(e)}")]
+@mcp.tool()
+async def safe_request(
+    petId: int,
+) -> dict | str:
+    """Example with error handling."""
+    try:
+        url = f"{BASE_URL}/pet/{petId}"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            return response.json() if response.text else {"status": "success"}
+    except httpx.HTTPStatusError as e:
+        return {"error": f"HTTP {e.response.status_code}", "detail": e.response.text}
+    except Exception as e:
+        return {"error": str(e)}
 ```
-{% else -%}
-```typescript
-try {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-  return await response.text();
-} catch (error) {
-  return `Error: ${error.message}`;
-}
-```
-{% endif -%}
 
 ## Testing Your Tools
 
 ### 1. Run the Server
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ```bash
-source venv/bin/activate  # or .venv/bin/activate for uv
+source .venv/bin/activate
 {{ cookiecutter.project_slug }}
 ```
-{% else -%}
+
+Or use the test script with auto-reload:
+
 ```bash
-npm start
+python test_server.py
 ```
-{% endif -%}
 
-### 2. Test with Claude Desktop
+### 2. Test with MCP Inspector
 
-Add to Claude Desktop config and restart Claude:
+MCP Inspector provides a visual interface for testing:
 
-{% if cookiecutter.sdk_choice == 'python' -%}
-```json
-{
-  "mcpServers": {
-    "{{ cookiecutter.project_slug }}": {
-      "command": "/path/to/venv/bin/{{ cookiecutter.project_slug }}"
-    }
-  }
-}
-```
+```bash
+# Start your server first
+python test_server.py
+
+# In another terminal, run MCP Inspector
+{% if cookiecutter.deployment_type == 'remote' -%}
+npx @modelcontextprotocol/inspector --cli http://localhost:{{ cookiecutter.server_port }}/mcp/
 {% else -%}
+npx @modelcontextprotocol/inspector {{ cookiecutter.project_slug }}
+{% endif -%}
+```
+
+The Inspector UI opens at `http://localhost:6274` where you can:
+- Test all tools with interactive forms
+- View tool schemas
+- Inspect request/response messages
+- Debug issues
+
+### 3. Test with Claude Desktop
+
+Add to your Claude Desktop config file and restart Claude:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
 ```json
 {
   "mcpServers": {
     "{{ cookiecutter.project_slug }}": {
-      "command": "node",
-      "args": ["/path/to/dist/index.js"]
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/path/to/{{ cookiecutter.project_slug }}",
+        "run",
+        "{{ cookiecutter.project_slug }}"
+      ],
+      "env": {
+        "BASE_URL": "{{ '${BASE_URL}' }}"
+      }
     }
   }
 }
 ```
-{% endif -%}
-
-### 3. Test Commands
 
 Try these prompts in Claude:
 - "What tools do you have available?"
 - "Get pet with ID 1"
 - "Search for available pets"
 
+## Adding Custom Tools
+
+While most tools are auto-generated from your OpenAPI spec, you can add custom tools:
+
+1. Create a new file in `src/{{ cookiecutter.project_slug }}/tools/`
+2. Use the `@mcp.tool()` decorator
+3. The server auto-discovers all tools in the tools directory
+
+Example custom tool:
+
+```python
+"""Custom tool: calculate_summary"""
+
+from typing import Any
+
+@mcp.tool()
+async def calculate_summary(
+    data: list[dict],  # List of items to summarize
+) -> dict:
+    """Calculate summary statistics from data."""
+    total = len(data)
+    # Your custom logic here
+    return {
+        "total": total,
+        "summary": "Custom calculation complete"
+    }
+```
+
 ## Tips
 
-1. **Start Simple** - Begin with GET requests, then add POST/PUT/DELETE
-2. **Use Examples** - Copy the example tool and modify it
-3. **Test Incrementally** - Add one tool at a time and test
-4. **Check Logs** - Watch server output for errors
-5. **Format Responses** - Parse JSON and format nicely for Claude
-6. **Add Descriptions** - Good descriptions help Claude use tools correctly
+1. **Use Auto-Generated Tools** - They're created from your OpenAPI spec automatically
+2. **Check Tool Files** - Review generated files in `src/{{ cookiecutter.project_slug }}/tools/`
+3. **Test with Inspector** - Use MCP Inspector for quick visual testing
+4. **Watch Logs** - Check server output for errors and debugging info
+5. **Environment Variables** - Use `BASE_URL` from .env to configure API endpoints
+6. **Add Error Handling** - Always handle HTTP errors and exceptions
 
-## Advanced: Parsing Responses
+## Advanced: Custom Response Formatting
 
-Instead of returning raw JSON, parse and format it:
+Parse and format responses for better readability:
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ```python
 import json
 
-response_data = json.loads(response.text)
-formatted = f"Pet Name: {response_data['name']}\\nStatus: {response_data['status']}"
-return [TextContent(type="text", text=formatted)]
+@mcp.tool()
+async def formatted_pet(
+    petId: int,
+) -> dict | str:
+    """Get pet with formatted response."""
+    url = f"{BASE_URL}/pet/{petId}"
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        response.raise_for_status()
+
+        data = response.json()
+        # Format the response
+        return {
+            "name": data.get("name", "Unknown"),
+            "status": data.get("status", "Unknown"),
+            "formatted": f"Pet '{data.get('name')}' is {data.get('status')}"
+        }
 ```
-{% else -%}
-```typescript
-const data = await response.json();
-const formatted = `Pet Name: ${data.name}\\nStatus: ${data.status}`;
-return formatted;
-```
-{% endif -%}
 
 ## Need Help?
 
 - Check the MCP docs: https://modelcontextprotocol.io
+- Review FastMCP docs: https://gofastmcp.com
 - Review your OpenAPI spec for endpoint details
-- Look at the example tool implementation
-- Test with simple curl commands first
+- Look at auto-generated tool implementations
+- Test with MCP Inspector for debugging
 
 Happy coding! 🚀

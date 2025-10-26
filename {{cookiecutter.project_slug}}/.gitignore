@@ -1,4 +1,3 @@
-{% if cookiecutter.sdk_choice == 'python' -%}
 # Python
 __pycache__/
 *.py[cod]
@@ -48,35 +47,6 @@ dmypy.json
 # Environment variables
 .env
 .env.local
-{% else -%}
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-
-# Build output
-dist/
-build/
-*.tsbuildinfo
-
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Testing
-coverage/
-.nyc_output/
-
-# Environment variables
-.env
-.env.local
-{% endif -%}
 
 # OS
 .DS_Store

@@ -8,7 +8,6 @@ This MCP server was generated using the MCP Cookie Cutter framework and provides
 
 ### Configuration
 
-- **SDK**: {{ cookiecutter.sdk_choice }}
 - **Deployment**: {{ cookiecutter.deployment_type }}
 - **Authentication**: {{ cookiecutter.auth_mechanism }}
 
@@ -19,7 +18,6 @@ This MCP server was generated using the MCP Cookie Cutter framework and provides
 
 ## Installation
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ### Python
 
 Using uv (required):
@@ -51,17 +49,6 @@ docker run -p {{ cookiecutter.server_port }}:{{ cookiecutter.server_port }} --en
 # Or use docker-compose
 docker-compose up -d
 ```
-{% else -%}
-### TypeScript
-
-```bash
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-```
-{% endif -%}
 
 ## Configuration
 
@@ -120,7 +107,6 @@ OAUTH_ISSUER_URL=https://auth.example.com
 
 ### Quick Start (Testing)
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 Use the provided test script for quick local testing:
 
 ```bash
@@ -138,12 +124,9 @@ This script will:
 - Display health check and MCP endpoint URLs
 {% endif -%}
 
-{% endif -%}
-
 {% if cookiecutter.deployment_type == 'local' -%}
 ### Local (STDIO) Mode
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ```bash
 # Activate virtual environment first
 source .venv/bin/activate
@@ -156,16 +139,6 @@ Or run directly with uv:
 ```bash
 uv run {{ cookiecutter.project_slug }}
 ```
-{% else -%}
-```bash
-npm start
-```
-
-Or run directly:
-```bash
-node dist/index.js
-```
-{% endif -%}
 
 #### Claude Desktop Configuration
 
@@ -174,7 +147,6 @@ Add to your Claude Desktop config file:
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ```json
 {
   "mcpServers": {
@@ -204,25 +176,12 @@ Or if using the activated virtual environment:
   }
 }
 ```
-{% else -%}
-```json
-{
-  "mcpServers": {
-    "{{ cookiecutter.project_slug }}": {
-      "command": "node",
-      "args": ["/path/to/{{ cookiecutter.project_slug }}/dist/index.js"]
-    }
-  }
-}
-```
-{% endif -%}
 
 {% else -%}
 ### Remote (HTTP/SSE) Mode
 
 This server uses **FastMCP with uvicorn** for production-grade HTTP deployment with streamable HTTP transport support.
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 #### Running the Server
 
 The server uses **uvicorn** for production-grade ASGI serving:
@@ -268,14 +227,6 @@ Response includes:
 - Active sessions and statistics
 - Security features enabled
 - MCP capabilities
-
-{% else -%}
-```bash
-npm start
-```
-
-The server will start on `http://localhost:{{ cookiecutter.server_port }}`
-{% endif -%}
 
 #### MCP Protocol Endpoints
 
@@ -378,7 +329,6 @@ The Inspector UI will open at `http://localhost:6274` where you can:
 
 ## Development
 
-{% if cookiecutter.sdk_choice == 'python' -%}
 ### Python Development
 
 ```bash
@@ -394,35 +344,14 @@ black src
 # Lint
 ruff check src
 ```
-{% else -%}
-### TypeScript Development
-
-```bash
-# Watch mode for development
-npm run dev
-
-# Run tests
-npm test
-
-# Lint
-npm run lint
-
-# Format
-npm run format
-```
-{% endif -%}
 
 ## Project Structure
 
 ```
 {{ cookiecutter.project_slug }}/
-{% if cookiecutter.sdk_choice == 'python' -%}
 ├── src/
 │   └── {{ cookiecutter.project_slug }}/
 │       ├── server.py          # FastMCP server with auto-discovery
-{% if cookiecutter.deployment_type == 'remote' -%}
-│       ├── http_server.py     # FastAPI HTTP server with SSE support
-{% endif -%}
 │       ├── tools/             # Individual tool files (auto-generated)
 │       │   ├── __init__.py
 │       │   ├── updatePet.py   # Example tool
@@ -440,23 +369,6 @@ npm run format
 {% endif -%}
 ├── pyproject.toml             # Python project configuration
 └── README.md
-{% else -%}
-├── src/
-│   ├── index.ts               # Main server implementation
-│   ├── tools.ts               # Tool definitions and handlers
-│   ├── prompts.ts             # Prompt templates
-{% if cookiecutter.auth_mechanism != 'none' -%}
-│   └── auth/                  # Authentication handlers
-{% if cookiecutter.auth_mechanism == 'oauth2' -%}
-│       └── oauth.ts           # OAuth 2.1 implementation
-{% elif cookiecutter.auth_mechanism == 'api_key' -%}
-│       └── apiKey.ts          # API key implementation
-{% endif -%}
-{% endif -%}
-├── package.json               # Node.js project configuration
-├── tsconfig.json              # TypeScript configuration
-└── README.md
-{% endif -%}
 ```
 
 ## Security Best Practices
@@ -469,7 +381,7 @@ npm run format
 {% else -%}
 ### Remote Deployment (HTTP/SSE Transport)
 
-**Built with FastAPI + uvicorn** for production-grade deployment:
+**Built with FastMCP + uvicorn** for production-grade deployment:
 
 - **Streamable HTTP Transport**: Implements MCP protocol over HTTP with SSE
 - **Session Management**: Automatic session tracking with `mcp-session-id` headers
@@ -505,11 +417,7 @@ npm run format
 
 - [Model Context Protocol Documentation](https://modelcontextprotocol.io)
 - [MCP Specification](https://modelcontextprotocol.io/specification/2025-06-18)
-{% if cookiecutter.sdk_choice == 'python' -%}
-- [Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-{% else -%}
-- [TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
-{% endif -%}
+- [FastMCP Documentation](https://gofastmcp.com)
 
 ## License
 
