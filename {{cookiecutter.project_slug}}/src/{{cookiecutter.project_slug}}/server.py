@@ -1,7 +1,12 @@
 """{{ cookiecutter.project_name }} FastMCP Server - Main Entry Point."""
 
 import logging
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -59,8 +64,9 @@ def create_server():
 
 def main():
     """Run the FastMCP server."""
-    import os
     deployment_type = "{{ cookiecutter.deployment_type }}"
+    auth_mechanism = "{{ cookiecutter.auth_mechanism }}"
+    allow_unauthenticated = "{{ cookiecutter.allow_unauthenticated_access }}" == "y"
 
     logger.info("Starting {{ cookiecutter.project_name }} FastMCP server")
     mcp = create_server()
@@ -77,6 +83,66 @@ def main():
         # Get the ASGI app from FastMCP (Streamable HTTP transport)
         # The endpoint will be available at /mcp/
         app = mcp.http_app()
+
+        # Add authentication middleware if API key auth is enabled
+        if auth_mechanism == "api_key":
+            from starlette.middleware.base import BaseHTTPMiddleware
+            from starlette.responses import JSONResponse
+
+            # Check if API key is set
+            expected_key = os.getenv("MCP_SERVER_API_KEY", "")
+
+            if not expected_key and not allow_unauthenticated:
+                logger.error("SECURITY ERROR: MCP_SERVER_API_KEY not set and unauthenticated access is disabled")
+                logger.error("Please set MCP_SERVER_API_KEY in your .env file or enable allow_unauthenticated_access during generation")
+                raise ValueError("MCP_SERVER_API_KEY is required but not set. Server will not start.")
+
+            if not expected_key and allow_unauthenticated:
+                logger.warning("WARNING: MCP_SERVER_API_KEY not set - running WITHOUT authentication")
+                logger.warning("This is a security risk. Please set MCP_SERVER_API_KEY in production.")
+
+            class AuthMiddleware(BaseHTTPMiddleware):
+                async def dispatch(self, request, call_next):
+                    # Skip auth for health check endpoint
+                    if request.url.path in ["/health", "/healthz"]:
+                        return await call_next(request)
+
+                    # Get API key from environment
+                    api_key = os.getenv("MCP_SERVER_API_KEY", "")
+
+                    # If no API key is set
+                    if not api_key:
+                        if allow_unauthenticated:
+                            # Allow access without authentication (if explicitly enabled)
+                            return await call_next(request)
+                        else:
+                            # Deny access (secure by default)
+                            logger.error("Authentication required but MCP_SERVER_API_KEY not set")
+                            return JSONResponse(
+                                status_code=500,
+                                content={"error": "Server configuration error - authentication not properly configured"}
+                            )
+
+                    # Check for API key in Authorization header
+                    auth_header = request.headers.get("Authorization", "")
+
+                    # Support both "Bearer <key>" and direct key
+                    token = auth_header.replace("Bearer ", "").strip() if auth_header else ""
+
+                    if token != api_key:
+                        logger.warning(f"Unauthorized access attempt from {request.client.host}")
+                        return JSONResponse(
+                            status_code=401,
+                            content={"error": "Unauthorized - Invalid API key"}
+                        )
+
+                    return await call_next(request)
+
+            app.add_middleware(AuthMiddleware)
+            if expected_key:
+                logger.info("✓ API key authentication enabled and MCP_SERVER_API_KEY is set")
+            else:
+                logger.warning("⚠ Authentication disabled - unauthenticated access allowed")
 
         uvicorn.run(
             app,

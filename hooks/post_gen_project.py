@@ -52,27 +52,44 @@ def create_env_template():
     deployment_type = "{{ cookiecutter.deployment_type }}"
     server_port = "{{ cookiecutter.server_port }}"
 
-    # Get base URL from OpenAPI tools if available
+    # Get base URL and detected API auth from OpenAPI tools if available
     base_url = ""
+    detected_auth_vars = set()
     if os.path.exists('./.openapi_tools.json'):
         with open('./.openapi_tools.json', 'r') as f:
             tool_data = json.load(f)
             base_url = tool_data.get('base_url', '')
+            detected_auth_vars = set(tool_data.get('auth_env_vars', []))
 
     # Start building env content
-    env_content = "# MCP Server Configuration\n\n"
+    env_content = "# =============================================================================\n"
+    env_content += "# MCP SERVER CONFIGURATION\n"
+    env_content += "# =============================================================================\n\n"
 
     # Add BASE_URL from OpenAPI spec
+    env_content += "# -----------------------------------------------------------------------------\n"
+    env_content += "# Target API Configuration\n"
+    env_content += "# -----------------------------------------------------------------------------\n"
     if base_url:
-        env_content += f"# API Base URL (from OpenAPI specification)\n"
+        env_content += f"# Base URL for the target API (from OpenAPI specification)\n"
         env_content += f"BASE_URL={base_url}\n\n"
     else:
-        env_content += "# API Base URL\n"
+        env_content += "# Base URL for the target API\n"
         env_content += "BASE_URL=https://api.example.com\n\n"
+
+    # Add detected API authentication parameters
+    if detected_auth_vars:
+        env_content += "# Target API Authentication Credentials\n"
+        env_content += "# These credentials are used to authenticate with the external/target API\n"
+        for auth_var in sorted(detected_auth_vars):
+            env_content += f"{auth_var}=your-api-key-here\n"
+        env_content += "\n"
 
     # Add PORT and HOST for remote deployment
     if deployment_type == "remote":
-        env_content += f"# Server Configuration\n"
+        env_content += "# -----------------------------------------------------------------------------\n"
+        env_content += "# MCP Server Settings\n"
+        env_content += "# -----------------------------------------------------------------------------\n"
         env_content += f"HOST=0.0.0.0\n"
         env_content += f"PORT={server_port}\n\n"
 
@@ -80,18 +97,33 @@ def create_env_template():
         env_content += "# CORS Configuration (comma-separated origins, or * for all)\n"
         env_content += "CORS_ORIGINS=*\n\n"
 
-    # Add auth configuration
+    # Add auth configuration for MCP server itself
     if auth_mechanism == "api_key":
-        env_content += """# API Key Authentication
-# Single API key for server access
-API_KEY=your-api-key-here
-"""
+        allow_unauth = "{{ cookiecutter.allow_unauthenticated_access }}"
+        env_content += "# -----------------------------------------------------------------------------\n"
+        env_content += "# MCP Server Authentication\n"
+        env_content += "# -----------------------------------------------------------------------------\n"
+        env_content += "# API key(s) that clients must provide to connect to THIS MCP server\n"
+        env_content += "# (This is separate from the target API credentials above)\n"
+        if allow_unauth == "n":
+            env_content += "#\n"
+            env_content += "# IMPORTANT: This server is configured to REQUIRE authentication.\n"
+            env_content += "# The server will NOT start without this key being set.\n"
+            env_content += "#\n"
+        else:
+            env_content += "#\n"
+            env_content += "# WARNING: Unauthenticated access is ENABLED for this server.\n"
+            env_content += "# If this key is not set, anyone can connect without authentication.\n"
+            env_content += "# Set this key to enable secure authentication.\n"
+            env_content += "#\n"
+        env_content += "MCP_SERVER_API_KEY=your-mcp-server-api-key-here\n"
     elif auth_mechanism == "oauth2":
-        env_content += """# OAuth 2.1 Configuration
-OAUTH_CLIENT_ID=your-client-id
-OAUTH_CLIENT_SECRET=your-client-secret  # Optional for public clients
-OAUTH_ISSUER_URL=https://your-oauth-provider.com
-"""
+        env_content += "# -----------------------------------------------------------------------------\n"
+        env_content += "# MCP Server OAuth 2.1 Configuration\n"
+        env_content += "# -----------------------------------------------------------------------------\n"
+        env_content += "OAUTH_CLIENT_ID=your-client-id\n"
+        env_content += "OAUTH_CLIENT_SECRET=your-client-secret  # Optional for public clients\n"
+        env_content += "OAUTH_ISSUER_URL=https://your-oauth-provider.com\n"
 
     with open(".env.example", "w") as f:
         f.write(env_content)
@@ -309,13 +341,69 @@ def sanitize_description(desc: str) -> str:
         desc = desc[:497] + "..."
     return desc
 
-def generate_fastmcp_tools(tools: list, tool_data: dict):
-    """Generate individual FastMCP tool files."""
+def is_auth_parameter(param: dict) -> bool:
+    """
+    Detect if a parameter is likely an authentication credential.
+    Checks for common patterns in parameter names.
+    """
+    param_name = param.get('name', '').lower()
+
+    # Common authentication parameter patterns
+    auth_patterns = [
+        'api_key', 'apikey', 'api-key',
+        'appid', 'app_id', 'app-id',
+        'token', 'access_token', 'auth_token',
+        'authorization', 'auth',
+        'key', 'secret',
+        'bearer', 'oauth'
+    ]
+
+    # Check if parameter name matches any auth pattern
+    for pattern in auth_patterns:
+        if pattern in param_name:
+            return True
+
+    # Also check description for auth-related keywords
+    description = param.get('description', '').lower()
+    if any(keyword in description for keyword in ['api key', 'authentication', 'authorization', 'token', 'secret']):
+        return True
+
+    return False
+
+def get_env_var_name(param_name: str) -> str:
+    """
+    Convert a parameter name to a standard environment variable name.
+    Examples:
+        'appid' -> 'API_KEY'
+        'api_key' -> 'API_KEY'
+        'access_token' -> 'ACCESS_TOKEN'
+    """
+    # Normalize common auth param names to standard names
+    param_lower = param_name.lower()
+
+    if param_lower in ['appid', 'app_id', 'api_key', 'apikey', 'key']:
+        return 'API_KEY'
+    elif 'token' in param_lower:
+        return 'ACCESS_TOKEN'
+    elif 'secret' in param_lower:
+        return 'API_SECRET'
+    else:
+        # Convert to uppercase and replace special chars with underscore
+        import re
+        env_name = re.sub(r'[^A-Z0-9]', '_', param_name.upper())
+        env_name = re.sub(r'_+', '_', env_name)  # Remove duplicate underscores
+        return env_name.strip('_')
+
+def generate_fastmcp_tools(tools: list, tool_data: dict) -> set:
+    """Generate individual FastMCP tool files and return detected auth env vars."""
     project_slug = "{{ cookiecutter.project_slug }}"
     tools_dir = Path(f"src/{project_slug}/tools")
     tools_dir.mkdir(parents=True, exist_ok=True)
 
     base_url = tool_data.get('base_url', '')
+
+    # Track all detected authentication environment variables across all tools
+    all_auth_env_vars = set()
 
     for tool in tools:
         try:
@@ -349,6 +437,21 @@ def generate_fastmcp_tools(tools: list, tool_data: dict):
 
             code += f'# Get BASE_URL from environment or use default from OpenAPI spec\n'
             code += f'BASE_URL = os.getenv("BASE_URL", "{base_url}")\n\n'
+
+            # Detect authentication parameters and generate env var handling
+            auth_params = [p for p in parameters if is_auth_parameter(p)]
+            auth_env_vars = {}
+
+            for auth_param in auth_params:
+                param_name = auth_param.get('name', '')
+                env_var_name = get_env_var_name(param_name)
+                auth_env_vars[param_name] = env_var_name
+                all_auth_env_vars.add(env_var_name)  # Track for .env generation
+                code += f'# Authentication: {param_name} from environment\n'
+                code += f'{env_var_name} = os.getenv("{env_var_name}", "")\n'
+
+            if auth_env_vars:
+                code += '\n'
 
             # Extract path parameter names directly from URL template
             import re
@@ -419,19 +522,29 @@ def generate_fastmcp_tools(tools: list, tool_data: dict):
             # Add parameters using sanitized names
             for param in sorted_params:
                 param_name = param['sanitized_name']
+                original_name = param.get('name', '')
                 param_type = param.get('schema', dict()).get('type', 'str')
                 python_type = dict(string='str', integer='int', boolean='bool', number='float').get(param_type, 'Any')
                 param_desc_raw = param.get('description', '')
                 # Sanitize param description for use in comments (simpler than docstrings)
                 param_desc = param_desc_raw.replace('\n', ' ').replace('\r', '')[:200] if param_desc_raw else ''
 
-                if param.get('required'):
+                # Auth parameters are always optional (will use env var if not provided)
+                is_auth = original_name in auth_env_vars
+                is_required = param.get('required') and not is_auth
+
+                if is_required:
                     code += f'    {param_name}: {python_type},  # {param_desc}\n'
                 else:
-                    code += f'    {param_name}: {python_type} | None = None,  # {param_desc}\n'
+                    opt_note = ' (optional if env var set)' if is_auth else ''
+                    code += f'    {param_name}: {python_type} | None = None,  # {param_desc}{opt_note}\n'
 
             # Add body parameter if it's a POST/PUT/PATCH
-            if method in ['POST', 'PUT', 'PATCH'] and tool.get('request_schema_ref'):
+            has_request_body = method in ['POST', 'PUT', 'PATCH'] and (
+                tool.get('request_schema_ref') or
+                tool.get('operation', {}).get('requestBody')
+            )
+            if has_request_body:
                 code += f'    body: dict,  # Request body\n'
 
             code += f') -> dict | str:\n'
@@ -449,6 +562,28 @@ def generate_fastmcp_tools(tools: list, tool_data: dict):
 
             code += '    url = f"{BASE_URL}' + url_path + '"\n\n'
 
+            # Prepare headers (including auth headers)
+            code += '    # Prepare request headers\n'
+            code += '    headers = {}\n'
+            header_params = [p for p in parameters if p.get('in') == 'header']
+            if header_params:
+                for param in header_params:
+                    original_name = param.get('name', '')
+                    sanitized_name = param.get('sanitized_name', original_name)
+
+                    # Handle auth parameters with env var fallback
+                    if original_name in auth_env_vars:
+                        env_var_name = auth_env_vars[original_name]
+                        code += f'    # Auto-inject {original_name} header from parameter or environment\n'
+                        code += f'    {sanitized_name}_value = {sanitized_name} or {env_var_name}\n'
+                        code += f'    if not {sanitized_name}_value:\n'
+                        code += f'        raise ValueError("{original_name} required. Provide as parameter or set {env_var_name} environment variable.")\n'
+                        code += f'    headers["{original_name}"] = {sanitized_name}_value\n'
+                    else:
+                        code += f'    if {sanitized_name} is not None:\n'
+                        code += f'        headers["{original_name}"] = {sanitized_name}\n'
+            code += '\n'
+
             # Handle different request methods
             code += f'    async with httpx.AsyncClient() as client:\n'
 
@@ -458,15 +593,46 @@ def generate_fastmcp_tools(tools: list, tool_data: dict):
                     if param.get('in') == 'query':
                         original_name = param.get('name', '')
                         sanitized_name = param.get('sanitized_name', original_name)
-                        code += f'        if {sanitized_name} is not None:\n'
-                        code += f'            params["{original_name}"] = {sanitized_name}\n'
-                code += f'\n        response = await client.get(url, params=params)\n'
+
+                        # Handle auth parameters with env var fallback
+                        if original_name in auth_env_vars:
+                            env_var_name = auth_env_vars[original_name]
+                            code += f'        # Auto-inject {original_name} from parameter or environment\n'
+                            code += f'        {sanitized_name}_value = {sanitized_name} or {env_var_name}\n'
+                            code += f'        if not {sanitized_name}_value:\n'
+                            code += f'            raise ValueError("{original_name} required. Provide as parameter or set {env_var_name} environment variable.")\n'
+                            code += f'        params["{original_name}"] = {sanitized_name}_value\n'
+                        else:
+                            code += f'        if {sanitized_name} is not None:\n'
+                            code += f'            params["{original_name}"] = {sanitized_name}\n'
+                code += f'\n        response = await client.get(url, params=params, headers=headers)\n'
 
             elif method in ['POST', 'PUT', 'PATCH']:
-                code += f'        response = await client.{method.lower()}(url, json=body)\n'
+                code += f'        response = await client.{method.lower()}(url, json=body, headers=headers)\n'
 
             elif method == 'DELETE':
-                code += f'        response = await client.delete(url)\n'
+                # DELETE can have query parameters (including auth)
+                query_params = [p for p in parameters if p.get('in') == 'query']
+                if query_params:
+                    code += f'        params = ' + '{}\n'
+                    for param in query_params:
+                        original_name = param.get('name', '')
+                        sanitized_name = param.get('sanitized_name', original_name)
+
+                        # Handle auth parameters with env var fallback
+                        if original_name in auth_env_vars:
+                            env_var_name = auth_env_vars[original_name]
+                            code += f'        # Auto-inject {original_name} from parameter or environment\n'
+                            code += f'        {sanitized_name}_value = {sanitized_name} or {env_var_name}\n'
+                            code += f'        if not {sanitized_name}_value:\n'
+                            code += f'            raise ValueError("{original_name} required. Provide as parameter or set {env_var_name} environment variable.")\n'
+                            code += f'        params["{original_name}"] = {sanitized_name}_value\n'
+                        else:
+                            code += f'        if {sanitized_name} is not None:\n'
+                            code += f'            params["{original_name}"] = {sanitized_name}\n'
+                    code += f'\n        response = await client.delete(url, params=params, headers=headers)\n'
+                else:
+                    code += f'        response = await client.delete(url, headers=headers)\n'
 
             code += f'        response.raise_for_status()\n'
             code += '        \n'
@@ -487,6 +653,8 @@ def generate_fastmcp_tools(tools: list, tool_data: dict):
             print(f"   ⚠️  Failed to generate tool {tool_name_raw}: {str(e)[:100]}")
             continue
 
+    return all_auth_env_vars
+
 def generate_tool_implementations():
     """Generate tool implementations for selected OpenAPI operations."""
     if not os.path.exists('./.openapi_tools.json'):
@@ -502,7 +670,14 @@ def generate_tool_implementations():
     print(f"\n🔧 Generating {len(tools)} tool implementation(s)...")
 
     # Always use FastMCP now
-    generate_fastmcp_tools(tools, tool_data)
+    detected_auth_vars = generate_fastmcp_tools(tools, tool_data)
+
+    # Save detected auth environment variables for .env.example generation
+    if detected_auth_vars:
+        tool_data['auth_env_vars'] = list(detected_auth_vars)
+        with open('./.openapi_tools.json', 'w') as f:
+            json.dump(tool_data, f, indent=2)
+        print(f"   ℹ️  Detected API authentication: {', '.join(sorted(detected_auth_vars))}")
 
     # Generate prompts from OpenAPI operations
     print(f"\n✨ Generating helpful prompts from API operations...")
@@ -644,12 +819,114 @@ def setup_fastmcp_project():
     prompts_init = prompts_dir / "__init__.py"
     prompts_init.write_text("\"\"\"Auto-generated prompts from OpenAPI specification.\"\"\"\n")
 
+def update_readme_with_api_auth():
+    """Update README.md with detected API authentication information."""
+    if not os.path.exists('./.openapi_tools.json'):
+        return
+
+    with open('./.openapi_tools.json', 'r') as f:
+        tool_data = json.load(f)
+
+    detected_auth_vars = tool_data.get('auth_env_vars', [])
+    if not detected_auth_vars:
+        return
+
+    base_url = tool_data.get('base_url', '')
+    deployment_type = "{{ cookiecutter.deployment_type }}"
+    project_slug = "{{ cookiecutter.project_slug }}"
+    project_name = "{{ cookiecutter.project_name }}"
+
+    # Extract domain from base_url for API key acquisition hint
+    api_domain = ""
+    if base_url:
+        from urllib.parse import urlparse
+        parsed = urlparse(base_url)
+        api_domain = parsed.netloc
+
+    # Build API authentication documentation
+    api_auth_section = "\n\n### API Authentication\n\n"
+    api_auth_section += "This server requires authentication credentials for the target API.\n\n"
+
+    api_auth_section += "**Required Environment Variables:**\n\n"
+    for auth_var in sorted(detected_auth_vars):
+        api_auth_section += f"- `{auth_var}`: Authentication credential for the API\n"
+
+    api_auth_section += "\n**Configuration:**\n\n"
+    api_auth_section += "```bash\n"
+    api_auth_section += "# Copy the example environment file\n"
+    api_auth_section += "cp .env.example .env\n\n"
+    api_auth_section += "# Edit .env and add your API credentials\n"
+    for auth_var in sorted(detected_auth_vars):
+        api_auth_section += f"{auth_var}=your-actual-api-key-here\n"
+    api_auth_section += "```\n\n"
+
+    # Add generic API key acquisition guidance
+    api_auth_section += "**Obtaining API Credentials:**\n\n"
+
+    if api_domain:
+        api_auth_section += f"1. Visit the API provider's website: `{api_domain}`\n"
+    else:
+        api_auth_section += "1. Visit the API provider's website\n"
+
+    api_auth_section += "2. Sign up or log into your account\n"
+    api_auth_section += "3. Navigate to the API keys or developer settings section\n"
+    api_auth_section += "4. Generate or copy your API key/token\n"
+    api_auth_section += "5. Add the credentials to your `.env` file as shown in the configuration above\n"
+    api_auth_section += "\n**Note**: Keep your API credentials secure and never commit them to version control.\n"
+
+    # Update Claude Desktop config section to include auth env vars
+    if deployment_type == 'local':
+        claude_config_addition = "\n\n**With API Authentication:**\n\n"
+        claude_config_addition += "```json\n"
+        claude_config_addition += "{\n"
+        claude_config_addition += '  "mcpServers": {\n'
+        claude_config_addition += f'    "{project_slug}": ' + '{\n'
+        claude_config_addition += '      "command": "uv",\n'
+        claude_config_addition += '      "args": [\n'
+        claude_config_addition += '        "--directory",\n'
+        claude_config_addition += f'        "/absolute/path/to/{project_slug}",\n'
+        claude_config_addition += '        "run",\n'
+        claude_config_addition += f'        "{project_slug}"\n'
+        claude_config_addition += '      ],\n'
+        claude_config_addition += '      "env": {\n'
+        for i, auth_var in enumerate(sorted(detected_auth_vars)):
+            comma = "," if i < len(detected_auth_vars) - 1 else ""
+            claude_config_addition += f'        "{auth_var}": "your-api-key-here"{comma}\n'
+        claude_config_addition += '      }\n'
+        claude_config_addition += '    }\n'
+        claude_config_addition += '  }\n'
+        claude_config_addition += '}\n'
+        claude_config_addition += "```\n"
+    else:
+        claude_config_addition = ""
+
+    # Read current README
+    readme_path = Path("README.md")
+    if not readme_path.exists():
+        return
+
+    content = readme_path.read_text()
+
+    # Find where to insert API auth section (after Configuration section)
+    if "## Configuration" in content:
+        # Insert after the Environment Variables section
+        insertion_point = content.find("## Usage")
+        if insertion_point != -1:
+            updated_content = content[:insertion_point] + api_auth_section + "\n" + content[insertion_point:]
+            readme_path.write_text(updated_content)
+            print("✓ Updated README.md with API authentication documentation")
+
+            # Also append Claude config if we have it
+            if claude_config_addition and "Claude Desktop Configuration" in updated_content:
+                config_section_end = updated_content.find("```\n", updated_content.find("Claude Desktop Configuration") + 200)
+                if config_section_end != -1:
+                    config_section_end += 4  # Move past the ```\n
+                    final_content = updated_content[:config_section_end] + claude_config_addition + updated_content[config_section_end:]
+                    readme_path.write_text(final_content)
+
 def main():
     """Main post-generation setup."""
     print("\n🔧 Running post-generation setup...")
-
-    # Create environment template
-    create_env_template()
 
     # Clean up unused files
     cleanup_unused_files()
@@ -661,7 +938,14 @@ def main():
     setup_fastmcp_project()
 
     # Generate tool implementations if tools were selected
+    # This must run BEFORE create_env_template to detect auth vars
     generate_tool_implementations()
+
+    # Create environment template (after tool generation to include detected auth)
+    create_env_template()
+
+    # Update README with API authentication documentation
+    update_readme_with_api_auth()
 
     # Setup Python project dependencies
     setup_python_project()

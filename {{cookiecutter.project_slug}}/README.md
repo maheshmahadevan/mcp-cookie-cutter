@@ -66,7 +66,7 @@ Edit `.env` to configure:
 - `PORT`: Server port (default: {{ cookiecutter.server_port }})
 {% endif -%}
 {% if cookiecutter.auth_mechanism == 'api_key' -%}
-- `MCP_API_KEYS`: Your API keys (comma-separated)
+- `MCP_SERVER_API_KEY`: API key for MCP server authentication (for clients connecting to this server)
 {% elif cookiecutter.auth_mechanism == 'oauth2' -%}
 - `OAUTH_CLIENT_ID`: OAuth client ID
 - `OAUTH_CLIENT_SECRET`: OAuth client secret (optional for PKCE)
@@ -74,7 +74,7 @@ Edit `.env` to configure:
 {% endif -%}
 
 {% if cookiecutter.auth_mechanism == 'api_key' -%}
-### API Key Authentication
+### MCP Server API Key Authentication
 
 Example `.env`:
 
@@ -83,7 +83,7 @@ BASE_URL=https://api.example.com
 {% if cookiecutter.deployment_type == 'remote' -%}
 PORT={{ cookiecutter.server_port }}
 {% endif -%}
-MCP_API_KEYS=your-api-key-1,your-api-key-2
+MCP_SERVER_API_KEY=your-mcp-server-api-key
 ```
 {% elif cookiecutter.auth_mechanism == 'oauth2' -%}
 ### OAuth 2.1 Authentication

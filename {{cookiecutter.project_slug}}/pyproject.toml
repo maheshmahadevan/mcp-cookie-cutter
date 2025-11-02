@@ -16,12 +16,12 @@ dependencies = [
     "httpx>=0.27.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
-{% if cookiecutter.deployment_type == 'remote' -%}
+{%- if cookiecutter.deployment_type == 'remote' %}
     "uvicorn[standard]>=0.32.0",
-{% endif -%}
-{% if cookiecutter.auth_mechanism == 'oauth2' -%}
+{%- endif %}
+{%- if cookiecutter.auth_mechanism == 'oauth2' %}
     "authlib>=1.3.0",
-{% endif -%}
+{%- endif %}
 ]
 
 [project.optional-dependencies]

@@ -308,7 +308,13 @@ def show_openapi_info():
                 print("\n💡 Would you like to select which tools to implement now?")
                 print("   (You can always add more tools later using CUSTOMIZATION.md)")
 
-                choice = input("\nSelect tools interactively? [Y/n]: ").strip().lower()
+                try:
+                    choice = input("\nSelect tools interactively? [Y/n]: ").strip().lower()
+                except (EOFError, KeyboardInterrupt):
+                    # No input available (--no-input mode) or user cancelled
+                    # Default to selecting all tools
+                    print("n")
+                    choice = 'n'
 
                 if choice in ['', 'y', 'yes']:
                     selected_tools = prompt_tool_selection(tools)
@@ -318,8 +324,10 @@ def show_openapi_info():
                     else:
                         print("\n⏭️  No tools selected. Use CUSTOMIZATION.md to add them later.")
                 else:
-                    print("\n⏭️  Skipping interactive selection.")
-                    print("   See CUSTOMIZATION.md in the generated project for details.")
+                    # Default to selecting all tools when not doing interactive selection
+                    print("\n⏭️  Skipping interactive selection. Selecting all tools by default.")
+                    save_selected_tools(tools, spec)
+                    print(f"✓ Will generate all {len(tools)} MCP tool(s)")
             else:
                 print("   No API operations found in the spec.")
         else:

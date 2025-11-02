@@ -4,20 +4,36 @@ services:
   {{ cookiecutter.project_slug }}:
     build: .
     container_name: {{ cookiecutter.project_slug }}
-{% if cookiecutter.deployment_type == 'remote' -%}
+{%- if cookiecutter.deployment_type == 'remote' %}
     ports:
       - "${PORT:-{{ cookiecutter.server_port }}}:{{ cookiecutter.server_port }}"
-{% endif -%}
+{%- endif %}
     env_file:
       - .env
     environment:
+      # Target API Configuration
+      - BASE_URL=${BASE_URL}
+{%- if cookiecutter.deployment_type == 'remote' %}
+      # MCP Server Settings
+      - HOST=${HOST:-0.0.0.0}
       - PORT=${PORT:-{{ cookiecutter.server_port }}}
-{% if cookiecutter.auth_mechanism == 'api_key' -%}
-      - MCP_API_KEYS=${MCP_API_KEYS}
-{% elif cookiecutter.auth_mechanism == 'oauth2' -%}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+{%- endif %}
+{%- if cookiecutter.auth_mechanism == 'api_key' %}
+      # MCP Server Authentication
+      - MCP_SERVER_API_KEY=${MCP_SERVER_API_KEY}
+{%- elif cookiecutter.auth_mechanism == 'oauth2' %}
+      # OAuth 2.1 Configuration
       - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
       - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
-      - OAUTH_AUTH_URL=${OAUTH_AUTH_URL}
-      - OAUTH_TOKEN_URL=${OAUTH_TOKEN_URL}
-{% endif -%}
+      - OAUTH_ISSUER_URL=${OAUTH_ISSUER_URL}
+{%- endif %}
     restart: unless-stopped
+{%- if cookiecutter.deployment_type == 'remote' %}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:{{ cookiecutter.server_port }}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+{%- endif %}
