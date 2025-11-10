@@ -45,3 +45,6 @@ petstore_mcp_server/
 .cookiecutter_tools.json
 .openapi_tools.json
 .openapi_spec.json
+
+# PyPI configuration (contains sensitive API tokens)
+.pypirc

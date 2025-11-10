@@ -57,38 +57,45 @@ Without the optional dependencies, you can still generate MCP servers, but OpenA
 
 ## Quick Start
 
-### 1. Install (Optional)
-
-You can use the template directly without installation, but for convenience you can install it:
+### 1. Install from PyPI (Recommended)
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/mcp-cookie-cutter.git
-cd mcp-cookie-cutter
+# Install cookiecutter if you haven't already
+pip install cookiecutter
+
+# Install optional dependencies for full OpenAPI parsing
+pip install pyyaml requests openapi-pydantic
+
+# Use the template directly from PyPI
+cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
 ```
 
 ### 2. Generate Your MCP Server
 
-#### From GitHub (once published):
+#### From GitHub (Recommended):
 ```bash
-cookiecutter gh:yourusername/mcp-cookie-cutter
+cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
+```
+
+#### From URL:
+```bash
+cookiecutter https://github.com/maheshmahadevan/mcp-cookie-cutter
 ```
 
 #### From local directory:
 ```bash
-# If you're in the template directory
+# Clone the repository first
+git clone https://github.com/maheshmahadevan/mcp-cookie-cutter.git
+cd mcp-cookie-cutter
+
+# Then use the template
 cookiecutter .
 
-# From anywhere else
+# Or from anywhere else using full path
 cookiecutter /full/path/to/mcp-cookie-cutter
 
 # Or using relative path
 cookiecutter ~/projects/mcp-cookie-cutter
-```
-
-#### From URL (once published):
-```bash
-cookiecutter https://github.com/yourusername/mcp-cookie-cutter
 ```
 
 ### 3. Answer the Prompts
@@ -395,19 +402,20 @@ alias mcp-create='cookiecutter /full/path/to/mcp-cookie-cutter'
 
 ```bash
 # Share via GitHub
-git remote add origin https://github.com/yourusername/mcp-cookie-cutter.git
+git remote add origin https://github.com/maheshmahadevan/mcp-cookie-cutter.git
 git push -u origin main
 
 # Team members use:
-cookiecutter gh:yourusername/mcp-cookie-cutter
+cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
 ```
 
-### Package Distribution (Future)
+### Package Distribution
+
+This package is available on PyPI for easy distribution:
 
 ```bash
-# Publish to PyPI (future)
-pip install mcp-cookie-cutter
-mcp-create
+# Anyone can use the template directly from GitHub
+cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
 ```
 
 ## Contributing

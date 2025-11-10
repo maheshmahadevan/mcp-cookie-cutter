@@ -1,0 +1,38 @@
+# Include core files
+include README.md
+include LICENSE
+include CHANGELOG.md
+include cookiecutter.json
+include hook_requirements.txt
+
+# Include documentation
+recursive-include docs *.md
+
+# Include hooks
+recursive-include hooks *.py
+
+# Include template directory with all files
+recursive-include {{cookiecutter.project_slug}} *
+
+# Include examples
+recursive-include examples *.json *.yaml *.yml
+
+# Include scripts
+recursive-include scripts *.sh
+
+# Exclude Python cache and build artifacts
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *$py.class
+global-exclude *.so
+global-exclude .DS_Store
+global-exclude *.egg-info
+global-exclude .git*
+
+# Exclude test and CI files from distribution
+exclude .gitignore
+exclude .gitattributes
+exclude tox.ini
+exclude .pre-commit-config.yaml
+prune tests
+prune .github
