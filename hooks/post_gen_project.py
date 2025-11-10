@@ -512,42 +512,56 @@ def generate_fastmcp_tools(tools: list, tool_data: dict) -> set:
                     param['name'] = param_name_raw
                 final_params.append(param)
 
-            # Sort by required first, then optional
-            sorted_params = sorted(final_params, key=lambda p: (not p.get('required', False), p.get('name', '')))
+            # Check if this endpoint needs a body parameter
+            has_request_body = method in ['POST', 'PUT', 'PATCH'] and (
+                tool.get('request_schema_ref') or
+                tool.get('operation', {}).get('requestBody')
+            )
+
+            # Separate required and optional parameters (considering auth params are optional)
+            required_params = []
+            optional_params = []
+
+            for param in final_params:
+                original_name = param.get('name', '')
+                is_auth = original_name in auth_env_vars
+                is_required = param.get('required') and not is_auth
+
+                if is_required:
+                    required_params.append(param)
+                else:
+                    optional_params.append(param)
 
             # Generate tool function with FastMCP decorator
             code += f'@mcp.tool()  # type: ignore\n'
             code += f'async def {tool_name}(\n'
 
-            # Add parameters using sanitized names
-            for param in sorted_params:
+            # Add required parameters first (path params, etc.)
+            for param in required_params:
+                param_name = param['sanitized_name']
+                param_type = param.get('schema', dict()).get('type', 'str')
+                python_type = dict(string='str', integer='int', boolean='bool', number='float').get(param_type, 'Any')
+                param_desc_raw = param.get('description', '')
+                param_desc = param_desc_raw.replace('\n', ' ').replace('\r', '')[:200] if param_desc_raw else ''
+                code += f'    {param_name}: {python_type},  # {param_desc}\n'
+
+            # Add body parameter (required) before optional parameters
+            if has_request_body:
+                code += f'    body: dict,  # Request body\n'
+
+            # Add optional parameters last
+            for param in optional_params:
                 param_name = param['sanitized_name']
                 original_name = param.get('name', '')
                 param_type = param.get('schema', dict()).get('type', 'str')
                 python_type = dict(string='str', integer='int', boolean='bool', number='float').get(param_type, 'Any')
                 param_desc_raw = param.get('description', '')
-                # Sanitize param description for use in comments (simpler than docstrings)
                 param_desc = param_desc_raw.replace('\n', ' ').replace('\r', '')[:200] if param_desc_raw else ''
-
-                # Auth parameters are always optional (will use env var if not provided)
                 is_auth = original_name in auth_env_vars
-                is_required = param.get('required') and not is_auth
+                opt_note = ' (optional if env var set)' if is_auth else ''
+                code += f'    {param_name}: {python_type} | None = None,  # {param_desc}{opt_note}\n'
 
-                if is_required:
-                    code += f'    {param_name}: {python_type},  # {param_desc}\n'
-                else:
-                    opt_note = ' (optional if env var set)' if is_auth else ''
-                    code += f'    {param_name}: {python_type} | None = None,  # {param_desc}{opt_note}\n'
-
-            # Add body parameter if it's a POST/PUT/PATCH
-            has_request_body = method in ['POST', 'PUT', 'PATCH'] and (
-                tool.get('request_schema_ref') or
-                tool.get('operation', {}).get('requestBody')
-            )
-            if has_request_body:
-                code += f'    body: dict,  # Request body\n'
-
-            code += f') -> dict | str:\n'
+            code += f') -> Any:\n'
             code += f'    """{description}"""\n'
 
             # Build URL with path parameters (use sanitized names)
@@ -585,7 +599,7 @@ def generate_fastmcp_tools(tools: list, tool_data: dict) -> set:
             code += '\n'
 
             # Handle different request methods
-            code += f'    async with httpx.AsyncClient() as client:\n'
+            code += f'    async with httpx.AsyncClient(follow_redirects=True) as client:\n'
 
             if method == 'GET':
                 code += f'        params = ' + '{}\n'

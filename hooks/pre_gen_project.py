@@ -242,16 +242,45 @@ def save_selected_tools(tools: List[Dict[str, Any]], spec: Dict[str, Any]):
     """Save selected tools and spec to files for post-generation hook."""
     import json
 
-    # Extract base URL from spec
+    # Extract base URL from spec (prefer HTTPS over HTTP)
     base_url = ""
     if 'servers' in spec and spec['servers']:
-        base_url = spec['servers'][0].get('url', '')
+        # Check all servers and prefer HTTPS URLs
+        https_url = None
+        http_url = None
+
+        for server in spec['servers']:
+            url = server.get('url', '')
+            if url.startswith('https://'):
+                https_url = url
+                break  # Found HTTPS, use it immediately
+            elif url.startswith('http://'):
+                http_url = url
+
+        # Prefer HTTPS, fallback to HTTP, or use first server
+        base_url = https_url or http_url or spec['servers'][0].get('url', '')
+
+        # If we got HTTP, convert to HTTPS
+        if base_url.startswith('http://'):
+            https_version = base_url.replace('http://', 'https://', 1)
+            print(f"   ℹ️  Note: API uses HTTP. Converted to HTTPS: {https_version}")
+            print(f"      (httpx will follow redirects automatically)")
+            base_url = https_version
+
     elif 'host' in spec:
         schemes = spec.get('schemes', ['https'])
+        # Prefer https scheme if available
+        if 'https' in schemes:
+            scheme = 'https'
+        elif schemes:
+            scheme = schemes[0]
+        else:
+            scheme = 'https'
+
         host = spec.get('host', '')
         base_path = spec.get('basePath', '')
         if host:
-            base_url = f"{schemes[0]}://{host}{base_path}"
+            base_url = f"{scheme}://{host}{base_path}"
 
     # Collect all schema references needed by selected tools
     schema_refs = set()
