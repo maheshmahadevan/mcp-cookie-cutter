@@ -164,8 +164,9 @@ jobs:
           test -f test_remote_server/docker-compose.yml
 
           # Verify Docker files contain expected content
-          grep -q "uvicorn" test_remote_server/Dockerfile
+          grep -q "EXPOSE 9090" test_remote_server/Dockerfile
           grep -q "9090" test_remote_server/docker-compose.yml
+          grep -q "CMD" test_remote_server/Dockerfile
 
           echo "✓ Remote deployment template generation successful"
 
