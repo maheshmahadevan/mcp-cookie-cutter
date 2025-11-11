@@ -1,9 +1,10 @@
 # MCP Cookie Cutter
 
-A cookiecutter template for creating Model Context Protocol (MCP) servers. Get a fully-configured MCP server in seconds, then customize it for your API.
+A powerful CLI tool and cookiecutter template for creating Model Context Protocol (MCP) servers. Get a fully-configured MCP server in seconds with a single command, then customize it for your API.
 
 ## Features
 
+- 🎯 **CLI Tool**: One command to generate your MCP server - `pip install mcp-cookie-cutter && mcp-cookie-cutter`
 - 🚀 **Quick Start**: Generate a working MCP server in seconds
 - 🐍 **Python with FastMCP**: Modern Python-based MCP servers with FastMCP framework
 - 🔧 **OpenAPI Auto-Generation**: Automatically generates tools from OpenAPI/Swagger specs
@@ -28,26 +29,31 @@ A cookiecutter template for creating Model Context Protocol (MCP) servers. Get a
 
 - Python 3.10+ (required)
 
-## Installation
+## Installation & Usage
 
-### Option 1: CLI Tool (Recommended)
+### 🎯 Option 1: CLI Tool (Recommended - Easiest!)
 
-Install as a standalone command-line tool:
+The fastest way to get started:
 
 ```bash
-# Install from PyPI (after publication)
+# Install the CLI tool
 pip install mcp-cookie-cutter
 
-# Now use the CLI command directly
+# Generate your MCP server
 mcp-cookie-cutter
+
+# Or with specific options
+mcp-cookie-cutter --no-input project_name="My API Server"
 ```
 
-### Option 2: Use with Cookiecutter
+**That's it!** The CLI bundles everything you need.
 
-Use directly with cookiecutter (no installation required):
+### 🔧 Option 2: Use with Cookiecutter
+
+If you prefer using cookiecutter directly:
 
 ```bash
-# Install cookiecutter
+# Install cookiecutter first
 pip install cookiecutter
 
 # Use the template from GitHub
@@ -68,48 +74,20 @@ Without the optional dependencies, you can still generate MCP servers, but OpenA
 
 ## Quick Start
 
-### Method 1: Using the CLI Tool (Easiest)
+### Step 1: Install and Run
 
+**Using CLI (recommended):**
 ```bash
-# Install the CLI tool
 pip install mcp-cookie-cutter
-
-# Run it
 mcp-cookie-cutter
-
-# With options
-mcp-cookie-cutter --no-input project_name="My API Server"
 ```
 
-### Method 2: Using Cookiecutter Directly
-
-#### From GitHub:
+**Or using cookiecutter:**
 ```bash
 cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
 ```
 
-#### From URL:
-```bash
-cookiecutter https://github.com/maheshmahadevan/mcp-cookie-cutter
-```
-
-#### From local directory:
-```bash
-# Clone the repository first
-git clone https://github.com/maheshmahadevan/mcp-cookie-cutter.git
-cd mcp-cookie-cutter
-
-# Then use the template
-cookiecutter .
-
-# Or from anywhere else using full path
-cookiecutter /full/path/to/mcp-cookie-cutter
-
-# Or using relative path
-cookiecutter ~/projects/mcp-cookie-cutter
-```
-
-### Answer the Prompts
+### Step 2: Answer the Prompts
 
 You'll be asked to configure:
 
@@ -122,11 +100,11 @@ You'll be asked to configure:
 - **Authentication**: None, API key, or OAuth 2.1
 - **License**: Choose from MIT, Apache-2.0, BSD-3-Clause, GPL-3.0, or Proprietary
 
-### 4. Customize Your Tools
+### Step 3: Customize Your Tools
 
 The generated server includes example tools. Follow the CUSTOMIZATION.md guide to add your API endpoints.
 
-### 5. Run Your Server
+### Step 4: Run Your Server
 
 Follow the setup instructions displayed after generation, or see the generated README.md.
 
@@ -346,9 +324,17 @@ Test your MCP Cookie Cutter template with these verified APIs that have OpenAPI 
 
 ### Quick Test Commands
 
-**Test with Petstore (Recommended):**
+**Using CLI tool (recommended):**
+
 ```bash
-cookiecutter . \
+# Install if you haven't already
+pip install mcp-cookie-cutter
+
+# Test with Petstore (just run and enter the OpenAPI URL when prompted)
+mcp-cookie-cutter
+
+# Or use with --no-input for automated testing
+mcp-cookie-cutter --no-input \
   project_name="petstore_server" \
   openapi_spec_path="https://petstore3.swagger.io/api/v3/openapi.json" \
   deployment_type="remote" \
@@ -356,20 +342,27 @@ cookiecutter . \
   auth_mechanism="none"
 ```
 
-**Test with JSONPlaceholder:**
+**Or using cookiecutter directly:**
+
 ```bash
-cookiecutter . \
+# Test with Petstore
+cookiecutter gh:maheshmahadevan/mcp-cookie-cutter \
+  project_name="petstore_server" \
+  openapi_spec_path="https://petstore3.swagger.io/api/v3/openapi.json" \
+  deployment_type="remote" \
+  server_port="9090" \
+  auth_mechanism="none"
+
+# Test with JSONPlaceholder
+cookiecutter gh:maheshmahadevan/mcp-cookie-cutter \
   project_name="jsonplaceholder_server" \
   openapi_spec_path="https://gist.githubusercontent.com/oshevtsov/7d17f88f74730ce9c95b6d7bb3e03c3d/raw/jsonplaceholder-openapi-3.0.yaml" \
   deployment_type="remote" \
   server_port="9090" \
   auth_mechanism="none"
-```
 
-**Test with GitHub API:**
-```bash
-# Note: GitHub API spec is very large, may take a minute to process
-cookiecutter . \
+# Test with GitHub API (note: very large spec, may take a minute)
+cookiecutter gh:maheshmahadevan/mcp-cookie-cutter \
   project_name="github_server" \
   openapi_spec_path="https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json" \
   deployment_type="remote" \
@@ -402,35 +395,47 @@ prism mock https://petstore3.swagger.io/api/v3/openapi.json
 
 ## Distribution
 
-### Local Use
+### For End Users
+
+The easiest way to use this tool is via PyPI:
 
 ```bash
-# Create alias in your shell config (~/.bashrc or ~/.zshrc)
-alias mcp-create='cookiecutter /full/path/to/mcp-cookie-cutter'
+# Install the CLI tool
+pip install mcp-cookie-cutter
+
+# Use it anywhere
+mcp-cookie-cutter
 ```
 
-### Team Use
+### For Teams
 
+**Share via PyPI (recommended):**
 ```bash
-# Share via GitHub
-git remote add origin https://github.com/maheshmahadevan/mcp-cookie-cutter.git
-git push -u origin main
-
-# Team members use:
-cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
-```
-
-### Package Distribution
-
-This package is available on PyPI for easy distribution:
-
-```bash
-# Install as a CLI tool (recommended)
+# Team members simply install and use
 pip install mcp-cookie-cutter
 mcp-cookie-cutter
+```
 
-# Or use with cookiecutter directly from GitHub
+**Or share via GitHub:**
+```bash
+# Team members use directly from GitHub
 cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
+```
+
+### For Developers
+
+If you want to modify the template locally:
+
+```bash
+# Clone the repository
+git clone https://github.com/maheshmahadevan/mcp-cookie-cutter.git
+cd mcp-cookie-cutter
+
+# Install in editable mode
+pip install -e .
+
+# Now the CLI uses your local version
+mcp-cookie-cutter
 ```
 
 ## Contributing
