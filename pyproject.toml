@@ -61,6 +61,9 @@ dev = [
     "twine>=4.0.0",
 ]
 
+[project.scripts]
+mcp-cookie-cutter = "mcp_cookie_cutter.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/maheshmahadevan/mcp-cookie-cutter"
 Documentation = "https://github.com/maheshmahadevan/mcp-cookie-cutter#readme"
@@ -74,10 +77,18 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["hooks*"]
+include = ["mcp_cookie_cutter*", "hooks*"]
 namespaces = false
 
 [tool.setuptools.package-data]
+"mcp_cookie_cutter" = [
+    "template/cookiecutter.json",
+    "template/{{cookiecutter.project_slug}}/**/*",
+    "template/{{cookiecutter.project_slug}}/**/.gitignore",
+    "template/{{cookiecutter.project_slug}}/**/.env.example",
+    "template/examples/**/*",
+    "template/hooks/**/*",
+]
 "*" = [
     "cookiecutter.json",
     "{{cookiecutter.project_slug}}/**/*",

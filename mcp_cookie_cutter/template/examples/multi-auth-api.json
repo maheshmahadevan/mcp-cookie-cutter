@@ -1,0 +1,184 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Multi-Auth API Example",
+    "version": "1.0.0",
+    "description": "Example API demonstrating different authentication methods for testing MCP Cookie Cutter auth detection"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v1",
+      "description": "API server"
+    }
+  ],
+  "paths": {
+    "/data": {
+      "get": {
+        "operationId": "getDataWithQueryAuth",
+        "summary": "Get data with query parameter authentication",
+        "description": "Demonstrates query parameter-based API key authentication",
+        "parameters": [
+          {
+            "name": "api_key",
+            "in": "query",
+            "description": "API key for authentication",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "getUsersWithHeaderAuth",
+        "summary": "Get users with header authentication",
+        "description": "Demonstrates header-based authentication",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer token for authentication",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of users"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createUserWithHeaderAuth",
+        "summary": "Create user with header authentication",
+        "description": "Create a new user with Bearer token auth",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer token for authentication",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created"
+          }
+        }
+      }
+    },
+    "/resources/{id}": {
+      "get": {
+        "operationId": "getResourceWithCustomHeader",
+        "summary": "Get resource with custom API key header",
+        "description": "Demonstrates custom header authentication (X-API-Key)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "description": "Your API key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resource details"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteResourceWithToken",
+        "summary": "Delete resource with access token",
+        "description": "Delete operation with token authentication",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "access_token",
+            "in": "query",
+            "description": "Access token for authentication",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Resource deleted"
+          }
+        }
+      }
+    }
+  }
+}

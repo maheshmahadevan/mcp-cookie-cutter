@@ -27,52 +27,63 @@ A cookiecutter template for creating Model Context Protocol (MCP) servers. Get a
 ## Prerequisites
 
 - Python 3.10+ (required)
-- [cookiecutter](https://github.com/cookiecutter/cookiecutter)
-- [uv](https://docs.astral.sh/uv/) (recommended for package management)
 
 ## Installation
 
-```bash
-# Install cookiecutter (required)
-pip install cookiecutter
+### Option 1: CLI Tool (Recommended)
 
-# Install optional dependencies for full OpenAPI parsing functionality
-pip install pyyaml requests openapi-pydantic
+Install as a standalone command-line tool:
+
+```bash
+# Install from PyPI (after publication)
+pip install mcp-cookie-cutter
+
+# Now use the CLI command directly
+mcp-cookie-cutter
 ```
 
-Or install all at once:
+### Option 2: Use with Cookiecutter
+
+Use directly with cookiecutter (no installation required):
 
 ```bash
-pip install cookiecutter pyyaml requests openapi-pydantic
+# Install cookiecutter
+pip install cookiecutter
+
+# Use the template from GitHub
+cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
 ```
 
 ### Dependency Details
+
+All dependencies are automatically installed with the CLI tool. If using cookiecutter directly:
 
 - **cookiecutter** (required) - Template generation engine
 - **pyyaml** (optional) - For parsing YAML OpenAPI specs
 - **requests** (optional) - For fetching OpenAPI specs from URLs
 - **openapi-pydantic** (optional) - For validating and parsing OpenAPI schemas with type safety
+- **datamodel-code-generator** (optional) - For generating Pydantic models
 
 Without the optional dependencies, you can still generate MCP servers, but OpenAPI spec parsing and tool suggestions will not be available.
 
 ## Quick Start
 
-### 1. Install from PyPI (Recommended)
+### Method 1: Using the CLI Tool (Easiest)
 
 ```bash
-# Install cookiecutter if you haven't already
-pip install cookiecutter
+# Install the CLI tool
+pip install mcp-cookie-cutter
 
-# Install optional dependencies for full OpenAPI parsing
-pip install pyyaml requests openapi-pydantic
+# Run it
+mcp-cookie-cutter
 
-# Use the template directly from PyPI
-cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
+# With options
+mcp-cookie-cutter --no-input project_name="My API Server"
 ```
 
-### 2. Generate Your MCP Server
+### Method 2: Using Cookiecutter Directly
 
-#### From GitHub (Recommended):
+#### From GitHub:
 ```bash
 cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
 ```
@@ -98,7 +109,7 @@ cookiecutter /full/path/to/mcp-cookie-cutter
 cookiecutter ~/projects/mcp-cookie-cutter
 ```
 
-### 3. Answer the Prompts
+### Answer the Prompts
 
 You'll be asked to configure:
 
@@ -414,7 +425,11 @@ cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
 This package is available on PyPI for easy distribution:
 
 ```bash
-# Anyone can use the template directly from GitHub
+# Install as a CLI tool (recommended)
+pip install mcp-cookie-cutter
+mcp-cookie-cutter
+
+# Or use with cookiecutter directly from GitHub
 cookiecutter gh:maheshmahadevan/mcp-cookie-cutter
 ```
 

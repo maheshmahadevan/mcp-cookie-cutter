@@ -8,15 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **CLI tool support** - Install as `pip install mcp-cookie-cutter` and use `mcp-cookie-cutter` command
+- Command-line interface entry point (`mcp_cookie_cutter.cli:main`)
 - PyPI packaging support with modern `pyproject.toml`
 - Comprehensive PUBLISHING.md documentation for PyPI releases
 - CHANGELOG.md for version tracking
 - MIT LICENSE file
 - MANIFEST.in for proper package distribution
+- mcp_cookie_cutter Python package with CLI module
 
 ### Changed
-- Updated README.md with correct repository URLs
-- Enhanced installation instructions with PyPI workflow
+- Updated README.md with CLI usage examples and correct repository URLs
+- Enhanced installation instructions with CLI tool option and PyPI workflow
+- Updated pyproject.toml with [project.scripts] entry point
 
 ## [0.1.0] - 2025-11-10
 
