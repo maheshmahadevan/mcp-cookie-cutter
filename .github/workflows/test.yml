@@ -56,7 +56,7 @@ jobs:
           cookiecutter . --no-input \
             project_name="test_petstore_server" \
             project_slug="test_petstore_server" \
-            openapi_spec_path="examples/petstore-swagger.json" \
+            openapi_spec_path="${PWD}/examples/petstore-swagger.json" \
             deployment_type="local" \
             auth_mechanism="none"
 
@@ -70,7 +70,7 @@ jobs:
           cookiecutter . --no-input \
             project_name="test_catapi_server" \
             project_slug="test_catapi_server" \
-            openapi_spec_path="examples/thecatapi.yaml" \
+            openapi_spec_path="${PWD}/examples/thecatapi.yaml" \
             deployment_type="local" \
             auth_mechanism="api_key"
 
@@ -84,7 +84,7 @@ jobs:
           cookiecutter . --no-input \
             project_name="test_weather_server" \
             project_slug="test_weather_server" \
-            openapi_spec_path="examples/openweather-api.json" \
+            openapi_spec_path="${PWD}/examples/openweather-api.json" \
             deployment_type="remote" \
             server_port="8000" \
             auth_mechanism="api_key"
@@ -101,7 +101,7 @@ jobs:
           cookiecutter . --no-input \
             project_name="test_multiauth_server" \
             project_slug="test_multiauth_server" \
-            openapi_spec_path="examples/multi-auth-api.json" \
+            openapi_spec_path="${PWD}/examples/multi-auth-api.json" \
             deployment_type="local" \
             auth_mechanism="oauth2"
 
