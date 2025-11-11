@@ -28,7 +28,9 @@ jobs:
       - name: Install uv
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
+          export PATH="$HOME/.cargo/bin:$PATH"
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          uv --version
 
       - name: Install cookiecutter and dependencies
         run: |
@@ -114,9 +116,10 @@ jobs:
         run: |
           cd test_basic_server
 
-          # Initialize with uv
-          uv venv
+          # Activate existing venv created by post_gen_project hook
           source .venv/bin/activate
+
+          # Install the package
           uv pip install -e .
 
           # Verify package is importable
@@ -126,9 +129,10 @@ jobs:
         run: |
           cd test_petstore_server
 
-          # Initialize with uv
-          uv venv
+          # Activate existing venv created by post_gen_project hook
           source .venv/bin/activate
+
+          # Install the package
           uv pip install -e .
 
           # Verify package is importable
