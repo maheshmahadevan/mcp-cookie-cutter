@@ -21,10 +21,10 @@ keywords = [
     "scaffolding",
 ]
 authors = [
-    {name = "MCP Cookie Cutter Contributors"}
+    {name = "Mahesh Mahadevan"}
 ]
 maintainers = [
-    {name = "MCP Cookie Cutter Contributors"}
+    {name = "Mahesh Mahadevan"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
