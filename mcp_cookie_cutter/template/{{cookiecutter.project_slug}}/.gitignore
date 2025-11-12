@@ -21,8 +21,8 @@ wheels/
 *.egg
 
 # Virtual environments
-venv/
 .venv/
+venv/
 env/
 ENV/
 
@@ -33,18 +33,24 @@ ENV/
 *.swo
 *~
 
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Environment variables
+.env
+.env.local
+
 # OS
 .DS_Store
 Thumbs.db
 
-# Generated projects (for testing)
-petstore_mcp_server/
-*_mcp_server/
-
-# Temporary files
+# MCP specific
 .cookiecutter_tools.json
-.openapi_tools.json
-.openapi_spec.json
-
-# PyPI configuration (contains sensitive API tokens)
-.pypirc

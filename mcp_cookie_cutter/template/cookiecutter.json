@@ -1,0 +1,13 @@
+{
+  "project_name": "My MCP Server",
+  "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_').replace('-', '_') }}",
+  "project_description": "MCP server generated from OpenAPI/Swagger specification",
+  "author_name": "Your Name",
+  "author_email": "your.email@example.com",
+  "openapi_spec_path": "",
+  "deployment_type": ["local", "remote"],
+  "server_port": "8000",
+  "auth_mechanism": ["none", "api_key", "oauth2"],
+  "allow_unauthenticated_access": ["n", "y"],
+  "license": ["MIT", "Apache-2.0", "BSD-3-Clause", "GPL-3.0", "Proprietary"]
+}
