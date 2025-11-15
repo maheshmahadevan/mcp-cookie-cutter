@@ -188,8 +188,6 @@ openapi_spec_path: https://petstore.swagger.io/v2/swagger.json
 💡 You can implement these as MCP tools in your generated server.
 ```
 
-See [OPENAPI_PARSING.md](OPENAPI_PARSING.md) for detailed documentation on OpenAPI parsing.
-
 ## Configuration Examples
 
 ### Local Server with No Auth
@@ -275,12 +273,6 @@ cookiecutter . --no-input \
   deployment_type="remote" \
   server_port="9090"
 ```
-
-## Documentation
-
-- **[EXAMPLE.md](EXAMPLE.md)** - Complete walkthrough with real code examples
-- **[USAGE.md](USAGE.md)** - Detailed usage guide for running from different locations
-- **[TEST_GUIDE.md](TEST_GUIDE.md)** - Testing with Petstore API
 
 ## Testing Resources
 
